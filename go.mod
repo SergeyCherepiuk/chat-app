@@ -1,4 +1,4 @@
-module asdkoda/session-auth
+module github.com/SergeyCherepiuk/session-auth
 
 go 1.20
 
