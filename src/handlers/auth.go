@@ -1,12 +1,13 @@
 package handlers
 
 import (
-	"asdkoda/session-auth/src/models"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/SergeyCherepiuk/session-auth/src/models"
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -20,11 +21,10 @@ func NewAuthHandler(db *gorm.DB) AuthHandler {
 	return AuthHandler{db: db}
 }
 
-func createCookie(c *fiber.Ctx, sessionId string, expiresIn time.Duration) {
+func createCookie(c *fiber.Ctx, sessionId string) {
 	cookie := new(fiber.Cookie)
 	cookie.Name = "session_id"
 	cookie.Value = sessionId
-	cookie.Expires = time.Now().Add(expiresIn)
 	cookie.HTTPOnly = true
 	c.Cookie(cookie)
 }
@@ -71,12 +71,62 @@ func (handler AuthHandler) SingUp(c *fiber.Ctx) error {
 		return result.Error
 	}
 
-	session := models.Session{UserID: user.ID, ExpiresAt: time.Now().Add(7 * 24 * time.Hour)}
+	session := models.Session{UserID: user.ID, ExpiresAt: time.Now().Add(10 * time.Second)}
 	if result := handler.db.Create(&session); result.Error != nil {
 		return result.Error
 	}
 
-	createCookie(c, fmt.Sprint(session.ID), 7*24*time.Hour)
-
+	createCookie(c, fmt.Sprint(session.ID))
 	return c.SendString("Signed up successfully")
+}
+
+func (handler AuthHandler) Login(c *fiber.Ctx) error {
+	body := authRequestBody{}
+	if err := c.BodyParser(&body); err != nil {
+		return err
+	}
+
+	err := body.validate()
+	if err != nil {
+		return err
+	}
+
+	user := models.User{}
+	if r := handler.db.Where("username = ?", body.Username).First(&user); r.Error != nil {
+		return r.Error
+	}
+
+	if bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(body.Password)) != nil {
+		return errors.New("wrong password")
+	}
+
+	if r := handler.db.Where("user_id = ?", user.ID).Delete(&models.Session{}); r.Error != nil {
+		return r.Error
+	}
+
+	session := models.Session{UserID: user.ID, ExpiresAt: time.Now().Add(10 * time.Second)}
+	if result := handler.db.Create(&session); result.Error != nil {
+		return result.Error
+	}
+
+	createCookie(c, fmt.Sprint(session.ID))
+	return c.SendString("Logged in successfully")
+}
+
+func (handler AuthHandler) Logout(c *fiber.Ctx) error {
+	sessionId, err := strconv.ParseUint(c.Cookies("session_id", ""), 10, 64)
+	if err != nil {
+		return err
+	}
+
+	session := models.Session{}
+	if r := handler.db.First(&session, sessionId); r.Error != nil || r.RowsAffected < 1 {
+		return errors.New("session not found")
+	}
+
+	if r := handler.db.Where("user_id = ?", session.UserID).Delete(&models.Session{}); r.Error != nil {
+		return r.Error
+	}
+
+	return c.Status(fiber.StatusOK).SendString("Logged out successfully")
 }

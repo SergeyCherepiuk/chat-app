@@ -1,11 +1,11 @@
 package initializers
 
 import (
-	"asdkoda/session-auth/src/models"
 	"fmt"
 	"log"
 	"os"
 
+	"github.com/SergeyCherepiuk/session-auth/src/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
