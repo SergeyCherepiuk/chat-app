@@ -1,21 +1,20 @@
 package handlers
 
 import (
-	"strconv"
-
 	"github.com/SergeyCherepiuk/session-auth/src/auth"
 	"github.com/SergeyCherepiuk/session-auth/src/models"
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type UserHandler struct {
-	db             *gorm.DB
+	pdb            *gorm.DB
 	sessionManager *auth.SessionManager
 }
 
-func NewUserHandler(db *gorm.DB, sessionManager *auth.SessionManager) *UserHandler {
-	return &UserHandler{db: db, sessionManager: sessionManager}
+func NewUserHandler(pdb *gorm.DB, sessionManager *auth.SessionManager) *UserHandler {
+	return &UserHandler{pdb: pdb, sessionManager: sessionManager}
 }
 
 type meResponse struct {
@@ -24,18 +23,18 @@ type meResponse struct {
 }
 
 func (handler UserHandler) Me(c *fiber.Ctx) error {
-	sessionId, err := strconv.ParseUint(c.Cookies("session_id", ""), 10, 64)
+	sessionId, err := uuid.Parse(c.Cookies("session_id", ""))
 	if err != nil {
 		return err
 	}
 
-	session, err := handler.sessionManager.CheckSession(uint(sessionId))
+	userId, err := handler.sessionManager.CheckSession(sessionId)
 	if err != nil {
 		return err
 	}
 
 	user := models.User{}
-	handler.db.First(&user, session.UserID)
+	handler.pdb.First(&user, userId)
 
 	return c.JSON(meResponse{
 		ID:       user.ID,

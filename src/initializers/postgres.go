@@ -24,7 +24,7 @@ func PostgresMustConnect() *gorm.DB {
 	}
 	fmt.Println("Successfully connected to the Postgres database")
 
-	if err := db.AutoMigrate(&models.User{}, &models.Session{}); err != nil {
+	if err := db.AutoMigrate(&models.User{}); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println("Successfully migrated the Postgres database")

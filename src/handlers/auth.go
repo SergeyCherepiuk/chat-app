@@ -9,6 +9,7 @@ import (
 	"github.com/SergeyCherepiuk/session-auth/src/auth"
 	"github.com/SergeyCherepiuk/session-auth/src/models"
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -35,7 +36,7 @@ func createCookie(c *fiber.Ctx, sessionId string) {
 
 func deleteCookie(c *fiber.Ctx) {
 	cookie := fiber.Cookie{
-		Name: "session_id",
+		Name:    "session_id",
 		Expires: time.Now(),
 	}
 	c.Cookie(&cookie)
@@ -79,16 +80,16 @@ func (handler AuthHandler) SingUp(c *fiber.Ctx) error {
 	}
 	user := models.User{Username: body.Username, Password: string(hashedPassword)}
 
-	if result := handler.pdb.Create(&user); result.Error != nil {
-		return result.Error
+	if r := handler.pdb.Create(&user); r.Error != nil {
+		return r.Error
 	}
 
-	session, err := handler.sessionManager.CreateSession(user.ID)
+	sessionId, err := handler.sessionManager.CreateSession(user.ID)
 	if err != nil {
 		return err
 	}
 
-	createCookie(c, fmt.Sprint(session.ID))
+	createCookie(c, fmt.Sprint(sessionId))
 	return c.SendString("Signed up successfully")
 }
 
@@ -112,18 +113,22 @@ func (handler AuthHandler) Login(c *fiber.Ctx) error {
 		return errors.New("wrong password")
 	}
 
-	session, err := handler.sessionManager.CreateSession(user.ID)
+	sessionId, err := handler.sessionManager.CreateSession(user.ID)
 	if err != nil {
 		return err
 	}
 
-	createCookie(c, fmt.Sprint(session.ID))
+	createCookie(c, fmt.Sprint(sessionId))
 	return c.SendString("Logged in successfully")
 }
 
 func (handler AuthHandler) Logout(c *fiber.Ctx) error {
-	// TODO: Delete session with sessionManager (by sessionId from the cookies)
+	sessionId, err := uuid.Parse(c.Cookies("session_id"))
+	if err != nil {
+		return err
+	}
 
+	handler.sessionManager.DeleteSessions(sessionId)
 	deleteCookie(c)
 	return c.SendString("Logged out successfully")
 }

@@ -4,6 +4,7 @@ import (
 	"github.com/SergeyCherepiuk/session-auth/src/auth"
 	"github.com/SergeyCherepiuk/session-auth/src/handlers"
 	"github.com/SergeyCherepiuk/session-auth/src/initializers"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/redis/go-redis/v9"
@@ -18,7 +19,7 @@ func init() {
 	initializers.LoadEnv()
 	pdb = initializers.PostgresMustConnect()
 	rdb = initializers.RedisMustConnect()
-	sessionManager = auth.NewSessionManager(pdb, rdb)
+	sessionManager = auth.NewSessionManager(rdb)
 }
 
 func main() {

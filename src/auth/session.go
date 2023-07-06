@@ -2,71 +2,60 @@ package auth
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
-	"github.com/SergeyCherepiuk/session-auth/src/models"
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
-	"gorm.io/gorm"
 )
 
 type SessionManager struct {
-	pdb *gorm.DB
 	rdb *redis.Client
 }
 
-func NewSessionManager(pdb *gorm.DB, rdb *redis.Client) *SessionManager {
-	return &SessionManager{pdb: pdb, rdb: rdb}
+func NewSessionManager(rdb *redis.Client) *SessionManager {
+	return &SessionManager{rdb: rdb}
 }
 
-func (manager SessionManager) CreateSession(userId uint) (models.Session, error) {
-	session := models.Session{
-		UserID:    userId,
-		ExpiresAt: time.Now().Add(10 * time.Second),
-	}
+func (manager SessionManager) CreateSession(userId uint) (uuid.UUID, error) {
+	sessionId := uuid.New()
 
-	r := manager.pdb.Create(&session)
-	if r.Error != nil {
-		return models.Session{}, r.Error
-	}
+	oldSessionId := manager.rdb.Get(context.Background(), fmt.Sprint(userId)).Val()
 
-	sessionJson, err := json.Marshal(session)
-	if err == nil {
-		manager.rdb.SetEx(
-			context.Background(),
-			fmt.Sprint(session.ID),
-			sessionJson,
-			time.Until(session.ExpiresAt).Round(time.Second),
-		)
-	}
+	// Create transaction (pipeline)
+	pipe := manager.rdb.TxPipeline()
 
-	return session, nil
+	// Delete old session
+	pipe.Del(context.Background(), oldSessionId)
+	pipe.Del(context.Background(), fmt.Sprint(userId))
+
+	// Create new session
+	pipe.Set(context.Background(), fmt.Sprint(sessionId), userId, 10*time.Second)
+	pipe.Set(context.Background(), fmt.Sprint(userId), fmt.Sprint(sessionId), 10*time.Second)
+
+	// Commit
+	pipe.Exec(context.Background())
+
+	return sessionId, nil
 }
 
-func (manager SessionManager) CheckSession(sessionId uint) (models.Session, error) {
-	session := models.Session{}
+func (manager SessionManager) CheckSession(sessionId uuid.UUID) (uint, error) {
+	if manager.rdb.Exists(context.Background(), fmt.Sprint(sessionId)).Val() < 1 {
+		return 0, errors.New("session expired")
+	}
 
-	data, err := manager.rdb.Get(context.Background(), fmt.Sprint(sessionId)).Result()
+	userId, err := strconv.ParseUint(manager.rdb.Get(context.Background(), fmt.Sprint(sessionId)).Val(), 10, 64)
 	if err != nil {
-		r := manager.pdb.First(&session, sessionId)
-		if r.Error != nil {
-			return models.Session{}, r.Error
-		}
-		if r.RowsAffected < 1 {
-			return models.Session{}, errors.New("session not found")
-		}
-	} else {
-		err = json.Unmarshal([]byte(data), &session)
-		if err != nil {
-			return models.Session{}, err
-		}
+		return 0, err
 	}
 
-	if session.ExpiresAt.Before(time.Now()) {
-		return models.Session{}, errors.New("session expired")
-	}
+	return uint(userId), nil
+}
 
-	return session, nil
+func (manager SessionManager) DeleteSessions(sessionId uuid.UUID) {
+	userId := manager.rdb.Get(context.Background(), fmt.Sprint(sessionId)).Val()
+	manager.rdb.Del(context.Background(), userId)
+	manager.rdb.Del(context.Background(), fmt.Sprint(sessionId))
 }
