@@ -3,30 +3,42 @@ package handlers
 import (
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
+	"github.com/SergeyCherepiuk/session-auth/src/auth"
 	"github.com/SergeyCherepiuk/session-auth/src/models"
 	"github.com/gofiber/fiber/v2"
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
 type AuthHandler struct {
-	db *gorm.DB
+	pdb            *gorm.DB
+	rdb            *redis.Client
+	sessionManager *auth.SessionManager
 }
 
-func NewAuthHandler(db *gorm.DB) AuthHandler {
-	return AuthHandler{db: db}
+func NewAuthHandler(pdb *gorm.DB, rdb *redis.Client, sessionManager *auth.SessionManager) *AuthHandler {
+	return &AuthHandler{pdb: pdb, rdb: rdb, sessionManager: sessionManager}
 }
 
 func createCookie(c *fiber.Ctx, sessionId string) {
-	cookie := new(fiber.Cookie)
-	cookie.Name = "session_id"
-	cookie.Value = sessionId
-	cookie.HTTPOnly = true
-	c.Cookie(cookie)
+	cookie := fiber.Cookie{
+		Name:     "session_id",
+		Value:    sessionId,
+		HTTPOnly: true,
+	}
+	c.Cookie(&cookie)
+}
+
+func deleteCookie(c *fiber.Ctx) {
+	cookie := fiber.Cookie{
+		Name: "session_id",
+		Expires: time.Now(),
+	}
+	c.Cookie(&cookie)
 }
 
 type authRequestBody struct {
@@ -67,13 +79,13 @@ func (handler AuthHandler) SingUp(c *fiber.Ctx) error {
 	}
 	user := models.User{Username: body.Username, Password: string(hashedPassword)}
 
-	if result := handler.db.Create(&user); result.Error != nil {
+	if result := handler.pdb.Create(&user); result.Error != nil {
 		return result.Error
 	}
 
-	session := models.Session{UserID: user.ID, ExpiresAt: time.Now().Add(10 * time.Second)}
-	if result := handler.db.Create(&session); result.Error != nil {
-		return result.Error
+	session, err := handler.sessionManager.CreateSession(user.ID)
+	if err != nil {
+		return err
 	}
 
 	createCookie(c, fmt.Sprint(session.ID))
@@ -92,7 +104,7 @@ func (handler AuthHandler) Login(c *fiber.Ctx) error {
 	}
 
 	user := models.User{}
-	if r := handler.db.Where("username = ?", body.Username).First(&user); r.Error != nil {
+	if r := handler.pdb.Where("username = ?", body.Username).First(&user); r.Error != nil {
 		return r.Error
 	}
 
@@ -100,13 +112,9 @@ func (handler AuthHandler) Login(c *fiber.Ctx) error {
 		return errors.New("wrong password")
 	}
 
-	if r := handler.db.Where("user_id = ?", user.ID).Delete(&models.Session{}); r.Error != nil {
-		return r.Error
-	}
-
-	session := models.Session{UserID: user.ID, ExpiresAt: time.Now().Add(10 * time.Second)}
-	if result := handler.db.Create(&session); result.Error != nil {
-		return result.Error
+	session, err := handler.sessionManager.CreateSession(user.ID)
+	if err != nil {
+		return err
 	}
 
 	createCookie(c, fmt.Sprint(session.ID))
@@ -114,19 +122,8 @@ func (handler AuthHandler) Login(c *fiber.Ctx) error {
 }
 
 func (handler AuthHandler) Logout(c *fiber.Ctx) error {
-	sessionId, err := strconv.ParseUint(c.Cookies("session_id", ""), 10, 64)
-	if err != nil {
-		return err
-	}
+	// TODO: Delete session with sessionManager (by sessionId from the cookies)
 
-	session := models.Session{}
-	if r := handler.db.First(&session, sessionId); r.Error != nil || r.RowsAffected < 1 {
-		return errors.New("session not found")
-	}
-
-	if r := handler.db.Where("user_id = ?", session.UserID).Delete(&models.Session{}); r.Error != nil {
-		return r.Error
-	}
-
-	return c.Status(fiber.StatusOK).SendString("Logged out successfully")
+	deleteCookie(c)
+	return c.SendString("Logged out successfully")
 }
