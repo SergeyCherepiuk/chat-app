@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -30,11 +31,33 @@ func (body rolesRequestBody) validate() error {
 }
 
 func (handler RolesHandler) GetById(c *fiber.Ctx) error {
-	return c.SendStatus(fiber.StatusNotImplemented)
+	roleId, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		return err
+	}
+
+	role := models.Role{}
+	r := handler.pdb.First(&role, roleId)
+	if r.Error != nil {
+		return r.Error
+	}
+
+	return c.JSON(role)
 }
 
 func (handler RolesHandler) GetAll(c *fiber.Ctx) error {
-	return c.SendStatus(fiber.StatusNotImplemented)
+	roles := []models.Role{}
+	r := handler.pdb.Find(&roles)
+	if r.Error != nil {
+		return r.Error
+	}
+
+	if r.RowsAffected < 1 {
+		c.Status(fiber.StatusNoContent)
+	} else {
+		c.Status(fiber.StatusOK)
+	}
+	return c.JSON(roles)
 }
 
 func (handler RolesHandler) Create(c *fiber.Ctx) error {
@@ -109,5 +132,10 @@ func (handler RolesHandler) Delete(c *fiber.Ctx) error {
 }
 
 func (handler RolesHandler) DeleteAll(c *fiber.Ctx) error {
-	return c.SendStatus(fiber.StatusNotImplemented)
+	r := handler.pdb.Where("1 = 1").Delete(&models.Role{})
+	if r.Error != nil {
+		return r.Error
+	}
+
+	return c.SendString(fmt.Sprintf("%d role(s) has/have been deleted", r.RowsAffected))
 }

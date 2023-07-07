@@ -7,7 +7,7 @@ This repository is a pet project aimed at exploring microservice architecture an
 Run with Docker Compose using the command below
 
 ```shell
-sudo docker-compose up --build
+docker-compose up --build
 ```
 
 or
