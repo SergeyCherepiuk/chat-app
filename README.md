@@ -23,3 +23,7 @@ or
 cd server
 go run main.go
 ```
+
+## Check endpoints in Postman
+
+[Postman collection](https://www.postman.com/asdkoda/workspace/session-auth/collection/26414129-53161e41-e3df-473f-81c7-4be929c6500e?action=share&creator=26414129)
