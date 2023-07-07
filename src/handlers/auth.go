@@ -84,11 +84,7 @@ func (handler AuthHandler) SingUp(c *fiber.Ctx) error {
 		return r.Error
 	}
 
-	sessionId, err := handler.sessionManager.CreateSession(user.ID)
-	if err != nil {
-		return err
-	}
-
+	sessionId := handler.sessionManager.CreateSession(user.ID)
 	createCookie(c, fmt.Sprint(sessionId))
 	return c.SendString("Signed up successfully")
 }
@@ -113,11 +109,16 @@ func (handler AuthHandler) Login(c *fiber.Ctx) error {
 		return errors.New("wrong password")
 	}
 
-	sessionId, err := handler.sessionManager.CreateSession(user.ID)
-	if err != nil {
-		return err
+	oldSession := c.Cookies("session_id", "")
+	if strings.TrimSpace(oldSession) != "" {
+		oldSessionUUID, err := uuid.Parse(oldSession)
+		if err != nil {
+			return errors.New("failed to delete previous session")
+		}
+		handler.sessionManager.DeleteSession(oldSessionUUID)
 	}
 
+	sessionId := handler.sessionManager.CreateSession(user.ID)
 	createCookie(c, fmt.Sprint(sessionId))
 	return c.SendString("Logged in successfully")
 }
@@ -128,7 +129,7 @@ func (handler AuthHandler) Logout(c *fiber.Ctx) error {
 		return err
 	}
 
-	handler.sessionManager.DeleteSessions(sessionId)
+	handler.sessionManager.DeleteSession(sessionId)
 	deleteCookie(c)
 	return c.SendString("Logged out successfully")
 }
