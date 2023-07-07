@@ -1,10 +1,9 @@
 package main
 
 import (
-	"github.com/SergeyCherepiuk/session-auth/src/auth"
-	"github.com/SergeyCherepiuk/session-auth/src/handlers"
-	"github.com/SergeyCherepiuk/session-auth/src/initializers"
-
+	"github.com/SergeyCherepiuk/session-auth/server/auth"
+	"github.com/SergeyCherepiuk/session-auth/server/handlers"
+	"github.com/SergeyCherepiuk/session-auth/server/initializers"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/redis/go-redis/v9"
@@ -27,16 +26,25 @@ func main() {
 	app.Use(logger.New())
 
 	api := app.Group("/api")
-	user := api.Group("/user")
 
-	authHandler := handlers.NewAuthHandler(pdb, rdb, sessionManager)
+	authHandler := handlers.NewAuthHandler(pdb, sessionManager)
 	auth := api.Group("/auth")
 	auth.Post("/signup", authHandler.SingUp)
 	auth.Post("/login", authHandler.Login)
 	auth.Post("/logout", authHandler.Logout)
 
 	userHandler := handlers.NewUserHandler(pdb, sessionManager)
+	user := api.Group("/user")
 	user.Get("/me", userHandler.Me)
+
+	rolesHandler := handlers.NewRolesHandler(pdb)
+	roles := api.Group("/roles")
+	roles.Get("/:id", rolesHandler.GetById)
+	roles.Get("/", rolesHandler.GetAll)
+	roles.Post("/", rolesHandler.Create)
+	roles.Put("/:id", rolesHandler.Update)
+	roles.Delete("/:id", rolesHandler.Delete)
+	roles.Delete("/", rolesHandler.DeleteAll)
 
 	app.Listen(":8001")
 }

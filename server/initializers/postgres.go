@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/SergeyCherepiuk/session-auth/src/models"
+	"github.com/SergeyCherepiuk/session-auth/server/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )

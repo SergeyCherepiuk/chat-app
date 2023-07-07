@@ -6,23 +6,21 @@ import (
 	"strings"
 	"time"
 
-	"github.com/SergeyCherepiuk/session-auth/src/auth"
-	"github.com/SergeyCherepiuk/session-auth/src/models"
+	"github.com/SergeyCherepiuk/session-auth/server/auth"
+	"github.com/SergeyCherepiuk/session-auth/server/models"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
 type AuthHandler struct {
 	pdb            *gorm.DB
-	rdb            *redis.Client
 	sessionManager *auth.SessionManager
 }
 
-func NewAuthHandler(pdb *gorm.DB, rdb *redis.Client, sessionManager *auth.SessionManager) *AuthHandler {
-	return &AuthHandler{pdb: pdb, rdb: rdb, sessionManager: sessionManager}
+func NewAuthHandler(pdb *gorm.DB, sessionManager *auth.SessionManager) *AuthHandler {
+	return &AuthHandler{pdb: pdb, sessionManager: sessionManager}
 }
 
 func createCookie(c *fiber.Ctx, sessionId string) {
@@ -65,11 +63,12 @@ func (body authRequestBody) validate() error {
 
 func (handler AuthHandler) SingUp(c *fiber.Ctx) error {
 	body := authRequestBody{}
-	if err := c.BodyParser(&body); err != nil {
+	err := c.BodyParser(&body)
+	if err != nil {
 		return err
 	}
 
-	err := body.validate()
+	err = body.validate()
 	if err != nil {
 		return err
 	}
