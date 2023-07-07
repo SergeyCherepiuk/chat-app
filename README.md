@@ -1,4 +1,4 @@
-# Server Microservice
+# Session authentication
 
 This repository is a pet project aimed at exploring microservice architecture and session management.
 
