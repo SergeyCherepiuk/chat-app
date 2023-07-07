@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/SergeyCherepiuk/session-auth/server/auth"
-	"github.com/SergeyCherepiuk/session-auth/server/handlers"
-	"github.com/SergeyCherepiuk/session-auth/server/initializers"
+	"github.com/SergeyCherepiuk/session-auth/auth"
+	"github.com/SergeyCherepiuk/session-auth/handlers"
+	"github.com/SergeyCherepiuk/session-auth/initializers"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/redis/go-redis/v9"

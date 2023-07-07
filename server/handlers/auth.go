@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/SergeyCherepiuk/session-auth/server/auth"
-	"github.com/SergeyCherepiuk/session-auth/server/models"
+	"github.com/SergeyCherepiuk/session-auth/auth"
+	"github.com/SergeyCherepiuk/session-auth/models"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"

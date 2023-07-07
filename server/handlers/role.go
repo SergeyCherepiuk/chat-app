@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/SergeyCherepiuk/session-auth/server/models"
+	"github.com/SergeyCherepiuk/session-auth/models"
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 )
