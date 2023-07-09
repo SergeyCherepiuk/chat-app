@@ -5,6 +5,10 @@ import (
 	"strings"
 )
 
+type RequestBody interface {
+	Validate() error
+}
+
 type SignUpRequestBody struct {
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
@@ -25,6 +29,27 @@ func (body SignUpRequestBody) Validate() error {
 
 	if strings.TrimSpace(body.Username) == "" {
 		err = errors.Join(err, errors.New("username is empty"))
+	}
+
+	if strings.TrimSpace(body.Password) == "" {
+		err = errors.Join(err, errors.New("password is empty"))
+	} else if len(body.Password) < 8 {
+		err = errors.Join(err, errors.New("password is too short"))
+	}
+
+	return err
+}
+
+type LoginRequestBody struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+func (body LoginRequestBody) Validate() error {
+	var err error
+
+	if strings.TrimSpace(body.Username) == "" {
+		err = errors.Join(errors.New("username is empty"))
 	}
 
 	if strings.TrimSpace(body.Password) == "" {

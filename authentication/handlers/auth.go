@@ -58,7 +58,27 @@ func (handler AuthHandler) SignUp(c *fiber.Ctx) error {
 }
 
 func (handler AuthHandler) Login(c *fiber.Ctx) error {
-	return c.SendStatus(fiber.StatusNotImplemented)
+	body := domain.LoginRequestBody{}
+	if err := c.BodyParser(&body); err != nil {
+		return err
+	}
+
+	if err := body.Validate(); err != nil {
+		return err
+	}
+
+	sessionId, err := handler.storage.Login(body.Username, body.Password)
+	if err != nil {
+		return err
+	}
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "session_id",
+		Value:    sessionId.String(),
+		HTTPOnly: true,
+		Expires:  time.Now().Add(7 * 24 * time.Hour),
+	})
+	return c.SendStatus(fiber.StatusOK)
 }
 
 func (handler AuthHandler) Check(c *fiber.Ctx) error {
