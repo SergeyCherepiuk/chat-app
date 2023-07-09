@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -34,24 +35,14 @@ func (storage AuthStorage) SignUp(user models.User) (uuid.UUID, error) {
 		return uuid.UUID{}, r.Error
 	}
 
-	err := pipe.Set(
-		context.Background(),
-		sessionId.String(),
-		fmt.Sprint(user.ID),
-		7*24*time.Hour,
-	).Err()
+	err := pipe.Set(context.Background(), sessionId.String(), fmt.Sprint(user.ID), 7*24*time.Hour).Err()
 	if err != nil {
 		tx.Rollback()
 		pipe.Discard()
 		return uuid.UUID{}, err
 	}
 
-	err = pipe.Set(
-		context.Background(),
-		fmt.Sprint(user.ID),
-		sessionId.String(),
-		7*24*time.Hour,
-	).Err()
+	err = pipe.Set(context.Background(), fmt.Sprint(user.ID), sessionId.String(), 7*24*time.Hour).Err()
 	if err != nil {
 		tx.Rollback()
 		pipe.Discard()
@@ -81,29 +72,32 @@ func (storage AuthStorage) Login(username, password string) (uuid.UUID, error) {
 
 	sessionId := uuid.New()
 	pipe := storage.rdb.Pipeline()
-
-	err = pipe.Set(
-		context.Background(),
-		sessionId.String(),
-		fmt.Sprint(user.ID),
-		7*24*time.Hour,
-	).Err()
+	pipe.Set(context.Background(), sessionId.String(), fmt.Sprint(user.ID), 7*24*time.Hour)
+	pipe.Set(context.Background(), fmt.Sprint(user.ID), sessionId.String(), 7*24*time.Hour)
+	_, err = pipe.Exec(context.Background())
 	if err != nil {
-		pipe.Discard()
 		return uuid.UUID{}, err
 	}
 
-	err = pipe.Set(
-		context.Background(),
-		fmt.Sprint(user.ID),
-		sessionId.String(),
-		7*24*time.Hour,
-	).Err()
-	if err != nil {
-		pipe.Discard()
-		return uuid.UUID{}, err
-	}
-
-	pipe.Exec(context.Background())
 	return sessionId, nil
+}
+
+func (storage AuthStorage) Check(sessionId uuid.UUID) error {
+	if storage.rdb.Get(context.Background(), sessionId.String()).Err() != nil {
+		return errors.New("session not found")
+	}
+	return nil
+}
+
+func (storage AuthStorage) Logout(sessionId uuid.UUID) error {
+	userId, err := storage.rdb.Get(context.Background(), sessionId.String()).Result()
+	if err != nil {
+		return err
+	}
+
+	pipe := storage.rdb.Pipeline()
+	pipe.Del(context.Background(), sessionId.String())
+	pipe.Del(context.Background(), userId)
+	_, err = pipe.Exec(context.Background())
+	return err
 }

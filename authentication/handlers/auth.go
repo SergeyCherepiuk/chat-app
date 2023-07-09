@@ -7,6 +7,7 @@ import (
 	"github.com/SergeyCherepiuk/chat-app/authentication/models"
 	"github.com/SergeyCherepiuk/chat-app/authentication/storage"
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -82,9 +83,31 @@ func (handler AuthHandler) Login(c *fiber.Ctx) error {
 }
 
 func (handler AuthHandler) Check(c *fiber.Ctx) error {
-	return c.SendStatus(fiber.StatusNotImplemented)
+	sessionId, err := uuid.Parse(c.Cookies("session_id", ""))
+	if err != nil {
+		return err
+	}
+
+	if err := handler.storage.Check(sessionId); err != nil {
+		return err
+	}
+
+	return c.SendStatus(fiber.StatusOK)
 }
 
 func (handler AuthHandler) Logout(c *fiber.Ctx) error {
-	return c.SendStatus(fiber.StatusNotImplemented)
+	sessionId, err := uuid.Parse(c.Cookies("session_id", ""))
+	if err != nil {
+		return err
+	}
+
+	if err := handler.storage.Logout(sessionId); err != nil {
+		return err
+	}
+	
+	c.Cookie(&fiber.Cookie{
+		Name: "session_id",
+		Expires: time.Now(),
+	})
+	return c.SendStatus(fiber.StatusOK)
 }
