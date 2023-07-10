@@ -15,9 +15,20 @@ func NewUserStorage(pdb *gorm.DB) *UserStorage {
 	return &UserStorage{pdb: pdb}
 }
 
-func (storage UserStorage) Get(userId uint) (models.User, error) {
+func (storage UserStorage) GetById(userId uint) (models.User, error) {
 	user := models.User{}
 	r := storage.pdb.First(&user, userId)
+	if r.Error != nil {
+		return models.User{}, r.Error
+	} else if r.RowsAffected < 1 {
+		return models.User{}, errors.New("user not found")
+	}
+	return user, nil
+}
+
+func (storage UserStorage) GetByUsername(username string) (models.User, error) {
+	user := models.User{}
+	r := storage.pdb.First(&user).Where("username = ?", username)
 	if r.Error != nil {
 		return models.User{}, r.Error
 	} else if r.RowsAffected < 1 {

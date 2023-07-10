@@ -22,12 +22,26 @@ func (handler UserHandler) GetMe(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 
-	user, err := handler.storage.Get(userId)
+	user, err := handler.storage.GetById(userId)
 	if err != nil {
 		return err
 	}
 
-	responseBody := domain.GetMeResponseBody{
+	responseBody := domain.GetUserResponseBody{
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Username:  user.Username,
+	}
+	return c.JSON(responseBody)
+}
+
+func (handler UserHandler) GetUser(c *fiber.Ctx) error {
+	user, err := handler.storage.GetByUsername(c.Params("username"))
+	if err != nil {
+		return err
+	}
+
+	responseBody := domain.GetUserResponseBody{
 		FirstName: user.FirstName,
 		LastName:  user.LastName,
 		Username:  user.Username,
@@ -41,7 +55,7 @@ func (handler UserHandler) UpdateMe(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 
-	body := domain.UpdateMeRequestBody{}
+	body := domain.UpdateUserRequestBody{}
 	if err := c.BodyParser(&body); err != nil {
 		return err
 	}

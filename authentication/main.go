@@ -39,6 +39,7 @@ func main() {
 	user := api.Group("/user")
 	user.Use(authMiddleware.CheckIfAuthenticated())
 	user.Get("/me", userHandler.GetMe)
+	user.Get("/:username", userHandler.GetUser)
 	user.Put("/me", userHandler.UpdateMe)
 	user.Delete("/me", userHandler.DeleteMe)
 
