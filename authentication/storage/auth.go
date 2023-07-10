@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/SergeyCherepiuk/chat-app/authentication/models"
@@ -82,11 +83,18 @@ func (storage AuthStorage) Login(username, password string) (uuid.UUID, error) {
 	return sessionId, nil
 }
 
-func (storage AuthStorage) Check(sessionId uuid.UUID) error {
-	if storage.rdb.Get(context.Background(), sessionId.String()).Err() != nil {
-		return errors.New("session not found")
+func (storage AuthStorage) Check(sessionId uuid.UUID) (uint, error) {
+	userIdStr, err := storage.rdb.Get(context.Background(), sessionId.String()).Result()
+	if err != nil {
+		return 0, errors.New("session not found")
 	}
-	return nil
+
+	userId, err := strconv.ParseUint(userIdStr, 10, 64)
+	if err != nil {
+		return 0, err
+	}	
+
+	return uint(userId), nil
 }
 
 func (storage AuthStorage) Logout(sessionId uuid.UUID) error {

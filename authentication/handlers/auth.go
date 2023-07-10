@@ -8,19 +8,15 @@ import (
 	"github.com/SergeyCherepiuk/chat-app/authentication/storage"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 type AuthHandler struct {
-	pdb     *gorm.DB
-	rdb     *redis.Client
 	storage *storage.AuthStorage
 }
 
-func NewAuthHandler(pdb *gorm.DB, rdb *redis.Client, storage *storage.AuthStorage) *AuthHandler {
-	return &AuthHandler{pdb: pdb, rdb: rdb, storage: storage}
+func NewAuthHandler(storage *storage.AuthStorage) *AuthHandler {
+	return &AuthHandler{storage: storage}
 }
 
 func (handler AuthHandler) SignUp(c *fiber.Ctx) error {
@@ -82,19 +78,6 @@ func (handler AuthHandler) Login(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusOK)
 }
 
-func (handler AuthHandler) Check(c *fiber.Ctx) error {
-	sessionId, err := uuid.Parse(c.Cookies("session_id", ""))
-	if err != nil {
-		return err
-	}
-
-	if err := handler.storage.Check(sessionId); err != nil {
-		return err
-	}
-
-	return c.SendStatus(fiber.StatusOK)
-}
-
 func (handler AuthHandler) Logout(c *fiber.Ctx) error {
 	sessionId, err := uuid.Parse(c.Cookies("session_id", ""))
 	if err != nil {
@@ -104,9 +87,9 @@ func (handler AuthHandler) Logout(c *fiber.Ctx) error {
 	if err := handler.storage.Logout(sessionId); err != nil {
 		return err
 	}
-	
+
 	c.Cookie(&fiber.Cookie{
-		Name: "session_id",
+		Name:    "session_id",
 		Expires: time.Now(),
 	})
 	return c.SendStatus(fiber.StatusOK)
