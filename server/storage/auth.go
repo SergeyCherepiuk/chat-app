@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/SergeyCherepiuk/chat-app/authentication/models"
+	"github.com/SergeyCherepiuk/chat-app/models"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
@@ -92,7 +92,7 @@ func (storage AuthStorage) Check(sessionId uuid.UUID) (uint, error) {
 	userId, err := strconv.ParseUint(userIdStr, 10, 64)
 	if err != nil {
 		return 0, err
-	}	
+	}
 
 	return uint(userId), nil
 }

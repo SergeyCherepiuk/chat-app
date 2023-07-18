@@ -3,7 +3,7 @@ package storage
 import (
 	"errors"
 
-	"github.com/SergeyCherepiuk/chat-app/authentication/models"
+	"github.com/SergeyCherepiuk/chat-app/models"
 	"gorm.io/gorm"
 )
 
