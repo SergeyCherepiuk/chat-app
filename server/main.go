@@ -41,7 +41,17 @@ func main() {
 	user.Get("/me", userHandler.GetMe)
 	user.Get("/:username", userHandler.GetUser)
 	user.Put("/me", userHandler.UpdateMe)
-	user.Delete("/me", userHandler.DeleteMe)	
+	user.Delete("/me", userHandler.DeleteMe)
+
+	chat := api.Group("/chat")
+	messageStorage := storage.NewMessageStorage(pdb)
+	messageHandler := handlers.NewMessageHandler(messageStorage)
+	chat.Use(authMiddleware.CheckIfAuthenticated())
+	chat.Post("/:chat_id/send", messageHandler.Create)
+
+	// chat.Get("/:chat_id")
+	// chat.Get("/:chat_id/users")
+	// chat.Post("/")
 
 	app.Listen(":8001")
 }
