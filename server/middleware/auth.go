@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"github.com/SergeyCherepiuk/chat-app/authentication/storage"
+	"github.com/SergeyCherepiuk/chat-app/storage"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 )

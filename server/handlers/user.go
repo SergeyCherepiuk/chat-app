@@ -3,8 +3,8 @@ package handlers
 import (
 	"time"
 
-	"github.com/SergeyCherepiuk/chat-app/authentication/domain"
-	"github.com/SergeyCherepiuk/chat-app/authentication/storage"
+	"github.com/SergeyCherepiuk/chat-app/domain"
+	"github.com/SergeyCherepiuk/chat-app/storage"
 	"github.com/gofiber/fiber/v2"
 )
 

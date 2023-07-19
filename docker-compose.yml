@@ -1,8 +1,8 @@
 version: '3.9'
 services:
-  authentication:
+  chat-app:
     build:
-      context: ./authentication
+      context: ./server
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
@@ -10,7 +10,7 @@ services:
     depends_on:
       - redis-db
       - postgres-db
-    image: chat-app/authentication
+    image: chat-app
 
   redis-db:
     image: redis:7-alpine

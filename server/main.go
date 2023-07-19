@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/SergeyCherepiuk/chat-app/authentication/handlers"
-	"github.com/SergeyCherepiuk/chat-app/authentication/initializers"
-	"github.com/SergeyCherepiuk/chat-app/authentication/middleware"
-	"github.com/SergeyCherepiuk/chat-app/authentication/storage"
+	"github.com/SergeyCherepiuk/chat-app/handlers"
+	"github.com/SergeyCherepiuk/chat-app/initializers"
+	"github.com/SergeyCherepiuk/chat-app/middleware"
+	"github.com/SergeyCherepiuk/chat-app/storage"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/redis/go-redis/v9"
@@ -42,6 +42,16 @@ func main() {
 	user.Get("/:username", userHandler.GetUser)
 	user.Put("/me", userHandler.UpdateMe)
 	user.Delete("/me", userHandler.DeleteMe)
+
+	chat := api.Group("/chat")
+	messageStorage := storage.NewMessageStorage(pdb)
+	messageHandler := handlers.NewMessageHandler(messageStorage)
+	chat.Use(authMiddleware.CheckIfAuthenticated())
+	chat.Post("/:chat_id/send", messageHandler.Create)
+
+	// chat.Get("/:chat_id")
+	// chat.Get("/:chat_id/users")
+	// chat.Post("/")
 
 	app.Listen(":8001")
 }
