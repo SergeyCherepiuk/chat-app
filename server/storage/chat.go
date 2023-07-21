@@ -29,8 +29,8 @@ func (storage ChatStorage) GetAllForChat(chatId uint) ([]models.Message, error) 
 	return messages, nil
 }
 
-func (storage ChatStorage) Create(message models.Message) error {
-	return storage.pdb.Create(&message).Error
+func (storage ChatStorage) Create(message *models.Message) error {
+	return storage.pdb.Create(message).Error
 }
 
 func (storage ChatStorage) Update(messageId uint, updatedText string) error {

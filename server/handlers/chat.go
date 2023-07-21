@@ -1,9 +1,7 @@
 package handlers
 
 import (
-	"errors"
 	"log"
-	"reflect"
 	"strconv"
 	"time"
 
@@ -27,18 +25,18 @@ func (handler ChatHandler) Enter(c *websocket.Conn) {
 
 	userId, ok := c.Locals("user_id").(uint)
 	if !ok {
-		log.Println(errors.New("Unathorized"))
+		log.Println("Unathorized")
 		return
 	}
 
 	chatId, err := strconv.ParseUint(c.Params("chat_id", ""), 10, 64)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Invalid chat id: %s\n", err.Error())
 		return
 	}
 
 	if isExists := handler.storage.IsExists(uint(chatId)); !isExists {
-		log.Println(err)
+		log.Printf("Chat not found: %s\n", err.Error())
 		return
 	}
 
@@ -46,13 +44,13 @@ func (handler ChatHandler) Enter(c *websocket.Conn) {
 
 	messages, err := handler.storage.GetAllForChat(uint(chatId))
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to get the chat history from the database: %s\n", err.Error())
 		return
 	}
 
 	for _, message := range messages {
-		if err := c.WriteMessage(websocket.TextMessage, []byte(message.Text)); err != nil {
-			log.Println(err)
+		if err := c.WriteJSON(message); err != nil {
+			log.Printf("Failed to send the chat history to the client: %s\n", err.Error())
 			return
 		}
 	}
@@ -60,7 +58,7 @@ func (handler ChatHandler) Enter(c *websocket.Conn) {
 	for {
 		_, text, err := c.ReadMessage()
 		if err != nil {
-			log.Println(err)
+			log.Printf("Failed to read message from the client: %s\n", err.Error())
 			return
 		}
 
@@ -70,15 +68,15 @@ func (handler ChatHandler) Enter(c *websocket.Conn) {
 			ChatID: uint(chatId),
 			SentAt: time.Now(),
 		}
-		if err := handler.storage.Create(message); err != nil {
-			log.Println(err)
+		if err := handler.storage.Create(&message); err != nil {
+			log.Printf("Failed to save message to the database: %s\n", err.Error())
 			return
 		}
 
 		for _, ws := range connections {
-			if !reflect.DeepEqual(c, ws) {
-				if err := ws.WriteMessage(websocket.TextMessage, text); err != nil {
-					log.Println(err)
+			if ws != c {
+				if err := ws.WriteJSON(message); err != nil {
+					log.Printf("Failed to send message to other chatters: %s\n", err.Error())
 					return
 				}
 			}
