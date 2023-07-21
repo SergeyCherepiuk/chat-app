@@ -11,6 +11,7 @@ import (
 
 func RedisMustConnect() *redis.Client {
 	addr := fmt.Sprintf("%s:%s", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT"))
+
 	client := redis.NewClient(&redis.Options{
 		Addr:     addr,
 		Password: os.Getenv("REDIS_PASSWORD"),

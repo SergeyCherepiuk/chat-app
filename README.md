@@ -7,6 +7,6 @@ Run application with Docker Compose using the command below:
 docker-compose up --build
 ```
 
-## Check out endpoints in Postman
+## Check out endpoints in Insomnia
 
-[Postman collection](https://www.postman.com/asdkoda/workspace/chat-app/overview)
+Import endpoints to Insomnia from `endpoints-insomnia-v4.json` file.

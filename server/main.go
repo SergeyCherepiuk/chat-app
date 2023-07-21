@@ -5,6 +5,7 @@ import (
 	"github.com/SergeyCherepiuk/chat-app/initializers"
 	"github.com/SergeyCherepiuk/chat-app/middleware"
 	"github.com/SergeyCherepiuk/chat-app/storage"
+	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/redis/go-redis/v9"
@@ -44,14 +45,11 @@ func main() {
 	user.Delete("/me", userHandler.DeleteMe)
 
 	chat := api.Group("/chat")
-	messageStorage := storage.NewMessageStorage(pdb)
-	messageHandler := handlers.NewMessageHandler(messageStorage)
+	chatStorage := storage.NewChatStorage(pdb)
+	chatHandler := handlers.NewChatHandler(chatStorage)
 	chat.Use(authMiddleware.CheckIfAuthenticated())
-	chat.Post("/:chat_id/send", messageHandler.Create)
-
-	// chat.Get("/:chat_id")
-	// chat.Get("/:chat_id/users")
-	// chat.Post("/")
+	chat.Use(middleware.Upgrade)
+	chat.Get("/:chat_id/enter", websocket.New(chatHandler.Enter, websocket.Config{}))
 
 	app.Listen(":8001")
 }
