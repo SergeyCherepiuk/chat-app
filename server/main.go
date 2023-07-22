@@ -48,8 +48,15 @@ func main() {
 	chatStorage := storage.NewChatStorage(pdb)
 	chatHandler := handlers.NewChatHandler(chatStorage)
 	chat.Use(authMiddleware.CheckIfAuthenticated())
-	chat.Use(middleware.Upgrade)
-	chat.Get("/:chat_id/enter", websocket.New(chatHandler.Enter, websocket.Config{}))
+	chat.Get("/", chatHandler.GetAll)
+	chat.Get("/:chat_id", chatHandler.GetById)
+	chat.Post("/", chatHandler.Create)
+	chat.Put("/:chat_id", chatHandler.Update)
+	chat.Delete("/:chat_id", chatHandler.Delete)
+
+	ws := chat.Group("")
+	ws.Use(middleware.Upgrade)
+	ws.Get("/:chat_id/enter", websocket.New(chatHandler.Enter, websocket.Config{}))
 
 	app.Listen(":8001")
 }

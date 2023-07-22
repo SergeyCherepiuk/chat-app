@@ -18,14 +18,18 @@ type UpdateUserRequestBody struct {
 
 func (body UpdateUserRequestBody) ToMap() map[string]any {
 	updates := make(map[string]any)
+
 	if strings.TrimSpace(body.FirstName) != "" {
 		updates["first_name"] = body.FirstName
 	}
+
 	if strings.TrimSpace(body.LastName) != "" {
 		updates["last_name"] = body.LastName
 	}
+
 	if strings.TrimSpace(body.Username) != "" {
 		updates["username"] = body.Username
 	}
+
 	return updates
 }

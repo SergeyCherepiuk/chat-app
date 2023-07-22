@@ -20,8 +20,6 @@ func (storage UserStorage) GetById(userId uint) (models.User, error) {
 	r := storage.pdb.First(&user, userId)
 	if r.Error != nil {
 		return models.User{}, r.Error
-	} else if r.RowsAffected < 1 {
-		return models.User{}, errors.New("user not found")
 	}
 	return user, nil
 }
