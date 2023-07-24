@@ -7,7 +7,6 @@ import (
 	"github.com/SergeyCherepiuk/chat-app/storage"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
@@ -23,7 +22,6 @@ func init() {
 
 func main() {
 	app := fiber.New()
-	app.Use(logger.New())
 
 	api := app.Group("/api")
 
