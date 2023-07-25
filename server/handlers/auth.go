@@ -24,17 +24,13 @@ func NewAuthHandler(storage *storage.AuthStorage) *AuthHandler {
 func (handler AuthHandler) SignUp(c *fiber.Ctx) error {
 	body := domain.SignUpRequestBody{}
 	if err := c.BodyParser(&body); err != nil {
-		logger.Logger.Error(
-			"failed to parse the body",
-			slog.String("error_message", err.Error()),
-		)
+		logger.Logger.Error("failed to parse the body", slog.String("err", err.Error()))
 		return err
 	}
 
 	if err := body.Validate(); err != nil {
-		logger.Logger.Error(
-			"request body isn't valid",
-			slog.String("error_message", err.Error()),
+		logger.Logger.Error("request body isn't valid",
+			slog.String("err", err.Error()),
 			slog.Any("body", body),
 		)
 		return err
@@ -42,10 +38,7 @@ func (handler AuthHandler) SignUp(c *fiber.Ctx) error {
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(body.Password), 10)
 	if err != nil {
-		logger.Logger.Error(
-			"failed to hash the password",
-			slog.String("error_message", err.Error()),
-		)
+		logger.Logger.Error("failed to hash the password", slog.String("err", err.Error()))
 		return err
 	}
 
@@ -55,20 +48,17 @@ func (handler AuthHandler) SignUp(c *fiber.Ctx) error {
 		Username:  body.Username,
 		Password:  string(hashedPassword),
 	}
-	sessionId, err := handler.storage.SignUp(user)
+	sessionId, err := handler.storage.SignUp(&user)
 	if err != nil {
-		logger.Logger.Error(
-			"failed to sign up the user",
-			slog.String("error_message", err.Error()),
-		)
+		logger.Logger.Error("failed to sign up the user", slog.String("err", err.Error()))
 		return err
 	}
+
 	logger.Logger.Info(
 		"user has been signed up",
 		slog.Uint64("user_id", uint64(user.ID)),
 		slog.Any("session_id", sessionId),
 	)
-
 	c.Cookie(&fiber.Cookie{
 		Name:     "session_id",
 		Value:    sessionId.String(),
@@ -81,35 +71,30 @@ func (handler AuthHandler) SignUp(c *fiber.Ctx) error {
 func (handler AuthHandler) Login(c *fiber.Ctx) error {
 	body := domain.LoginRequestBody{}
 	if err := c.BodyParser(&body); err != nil {
-		logger.Logger.Error(
-			"failed to hash the password",
-			slog.String("error_message", err.Error()),
-		)
+		logger.Logger.Error("failed to hash the password", slog.String("err", err.Error()))
 		return err
 	}
 
 	if err := body.Validate(); err != nil {
 		logger.Logger.Error(
 			"request body isn't valid",
-			slog.String("error_message", err.Error()),
+			slog.String("err", err.Error()),
 			slog.Any("body", body),
 		)
 		return err
 	}
 
-	sessionId, err := handler.storage.Login(body.Username, body.Password)
+	sessionId, userId, err := handler.storage.Login(body.Username, body.Password)
 	if err != nil {
-		logger.Logger.Error(
-			"failed to log in user",
-			slog.String("error_message", err.Error()),
-		)
+		logger.Logger.Error("failed to log in user", slog.String("err", err.Error()))
 		return err
 	}
+
 	logger.Logger.Info(
 		"user has been logged in",
+		slog.Uint64("user_id", uint64(userId)),
 		slog.Any("session_id", sessionId),
 	)
-
 	c.Cookie(&fiber.Cookie{
 		Name:     "session_id",
 		Value:    sessionId.String(),
@@ -124,21 +109,18 @@ func (handler AuthHandler) Logout(c *fiber.Ctx) error {
 	if err != nil {
 		logger.Logger.Error(
 			"invalid session id",
-			slog.String("error_message", err.Error()),
+			slog.String("err", err.Error()),
 			slog.Any("session_id", sessionId),
 		)
 		return err
 	}
 
 	if err := handler.storage.Logout(sessionId); err != nil {
-		logger.Logger.Error(
-			"failed to log out user",
-			slog.String("error_message", err.Error()),
-		)
+		logger.Logger.Error("failed to log out user", slog.String("err", err.Error()))
 		return err
 	}
-	logger.Logger.Info("user has been logged out")
 
+	logger.Logger.Info("user has been logged out", slog.Any("session_id", sessionId))
 	c.Cookie(&fiber.Cookie{
 		Name:    "session_id",
 		Expires: time.Now(),

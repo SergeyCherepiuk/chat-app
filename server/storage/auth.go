@@ -23,13 +23,13 @@ func NewAuthStorage(pdb *gorm.DB, rdb *redis.Client) *AuthStorage {
 	return &AuthStorage{pdb: pdb, rdb: rdb}
 }
 
-func (storage AuthStorage) SignUp(user models.User) (uuid.UUID, error) {
+func (storage AuthStorage) SignUp(user *models.User) (uuid.UUID, error) {
 	sessionId := uuid.New()
 
 	tx := storage.pdb.Begin()
 	pipe := storage.rdb.Pipeline()
 
-	r := tx.Create(&user)
+	r := tx.Create(user)
 	if r.Error != nil {
 		tx.Rollback()
 		pipe.Discard()
@@ -55,15 +55,15 @@ func (storage AuthStorage) SignUp(user models.User) (uuid.UUID, error) {
 	return sessionId, nil
 }
 
-func (storage AuthStorage) Login(username, password string) (uuid.UUID, error) {
+func (storage AuthStorage) Login(username, password string) (uuid.UUID,  uint, error) {
 	user := models.User{}
 	r := storage.pdb.Where("username = ?", username).First(&user)
 	if r.Error != nil {
-		return uuid.UUID{}, r.Error
+		return uuid.UUID{}, 0, r.Error
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		return uuid.UUID{}, err
+		return uuid.UUID{}, 0, err
 	}
 
 	oldSessionId, err := storage.rdb.Get(context.Background(), fmt.Sprint(user.ID)).Result()
@@ -77,10 +77,10 @@ func (storage AuthStorage) Login(username, password string) (uuid.UUID, error) {
 	pipe.Set(context.Background(), fmt.Sprint(user.ID), sessionId.String(), 7*24*time.Hour)
 	_, err = pipe.Exec(context.Background())
 	if err != nil {
-		return uuid.UUID{}, err
+		return uuid.UUID{}, 0, err
 	}
 
-	return sessionId, nil
+	return sessionId, user.ID, nil
 }
 
 func (storage AuthStorage) Check(sessionId uuid.UUID) (uint, error) {
