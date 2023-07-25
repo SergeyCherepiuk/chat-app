@@ -1,15 +1,18 @@
 package handlers
 
 import (
+	"errors"
 	"log"
 	"strconv"
 	"time"
 
 	"github.com/SergeyCherepiuk/chat-app/domain"
+	"github.com/SergeyCherepiuk/chat-app/logger"
 	"github.com/SergeyCherepiuk/chat-app/models"
 	"github.com/SergeyCherepiuk/chat-app/storage"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
+	"golang.org/x/exp/slog"
 )
 
 type ChatHandler struct {
@@ -21,8 +24,24 @@ func NewChatHandler(storage *storage.ChatStorage) *ChatHandler {
 }
 
 func (handler ChatHandler) GetAll(c *fiber.Ctx) error {
+	userId, ok := c.Locals("user_id").(uint)
+	if !ok {
+		err := errors.New("invalid user id")
+		logger.Logger.Error(
+			"failed to parse user id",
+			slog.String("error_message", err.Error()),
+			slog.Any("user_id", c.Locals("user_id")),
+		)
+		return err
+	}
+
 	chats, err := handler.storage.GetAllChats()
 	if err != nil {
+		logger.Logger.Error(
+			"failed to get list of chats",
+			slog.String("error_message", err.Error()),
+			slog.Uint64("user_id", uint64(userId)),
+		)
 		return err
 	}
 
@@ -31,20 +50,54 @@ func (handler ChatHandler) GetAll(c *fiber.Ctx) error {
 	} else {
 		c.Status(fiber.StatusOK)
 	}
+
+	logger.Logger.Info(
+		"list of chats has been sent to the user",
+		slog.Uint64("user_id", uint64(userId)),
+		slog.Any("chats", chats),
+	)
 	return c.JSON(chats)
 }
 
 func (handler ChatHandler) GetById(c *fiber.Ctx) error {
+	userId, ok := c.Locals("user_id").(uint)
+	if !ok {
+		err := errors.New("invalid user id")
+		logger.Logger.Error(
+			"failed to parse user id",
+			slog.String("error_message", err.Error()),
+			slog.Any("user_id", c.Locals("user_id")),
+		)
+		return err
+	}
+	
 	chatId, err := strconv.ParseUint(c.Params("chat_id"), 10, 64)
 	if err != nil {
+		logger.Logger.Error(
+			"failed to parse chat id",
+			slog.String("error_message", err.Error()),
+			slog.Uint64("user_id", uint64(userId)),
+			slog.Any("chat_id", c.Params("chat_id")),
+		)
 		return err
 	}
 
 	chat, err := handler.storage.GetChatById(uint(chatId))
 	if err != nil {
+		logger.Logger.Error(
+			"failed to find chat by id",
+			slog.String("error_message", err.Error()),
+			slog.Uint64("user_id", uint64(userId)),
+			slog.Uint64("chat_id", chatId),
+		)
 		return err
 	}
 
+	logger.Logger.Info(
+		"chat has been sent to the user",
+		slog.Uint64("user_id", uint64(userId)),
+		slog.Any("chat", chat),
+	)
 	return c.JSON(chat)
 }
 
