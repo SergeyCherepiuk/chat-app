@@ -4,13 +4,17 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
+    image: chat-app
     restart: unless-stopped
     ports:
       - '8001:8001'
+    logging:
+      driver: 'loki'
+      options:
+        loki-url: "http://loki:${LOKI_PORT}/loki/api/v1/push"
     depends_on:
       - redis-db
       - postgres-db
-    image: chat-app
 
   redis-db:
     image: redis:7-alpine
@@ -30,10 +34,30 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DBNAME}
     volumes:
-      - 'postgres-data:/var/lib/postgresql/data'    
+      - 'postgres-data:/var/lib/postgresql/data'
+    
+  loki:
+    image: grafana/loki:latest
+    container_name: 'loki'
+    restart: unless-stopped
+    ports:
+      - '${LOKI_PORT}:3100'
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - '${GRAFANA_PORT}:3000'
+    logging:
+      driver: 'loki'
+      options:
+        loki-url: "http://loki:${LOKI_PORT}/loki/api/v1/push"
 
 volumes:
   redis-data:
     driver: local
   postgres-data:
+    driver: local
+  logs:
     driver: local
