@@ -8,51 +8,78 @@ services:
     restart: unless-stopped
     ports:
       - '8001:8001'
-    logging:
-      driver: 'loki'
-      options:
-        loki-url: "http://loki:${LOKI_PORT}/loki/api/v1/push"
+    labels:
+      logging: 'promtail'
+      logging_jobname: 'containerlogs'
     depends_on:
       - redis-db
       - postgres-db
+      - promtail
+    networks:
+      - app
 
   redis-db:
     image: redis:7-alpine
     restart: unless-stopped
     ports:
-      - '${REDIS_PORT}:6379'
+      - '6379:6379'
     volumes:
       - 'redis-data:/data'
+    networks:
+      - app
 
   postgres-db:
     image: postgres:15-alpine
     restart: unless-stopped
     ports:
-      - '${POSTGRES_PORT}:5432'
+      - '5432:5432'
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DBNAME}
     volumes:
       - 'postgres-data:/var/lib/postgresql/data'
+    networks:
+      - app
     
   loki:
     image: grafana/loki:latest
     container_name: 'loki'
     restart: unless-stopped
+    command: -config.file=/etc/loki/config.yml
     ports:
-      - '${LOKI_PORT}:3100'
+      - '3100:3100'
+    volumes:
+      - './server/config/loki/config.yml:/etc/loki/config.yml'
+    networks:
+      - app
+      - loki
+
+  promtail:
+    image: grafana/promtail:latest
+    restart: unless-stopped
+    container_name: 'promtail'
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - './server/config/promtail/config.yml:/etc/promtail/config.yml'
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - loki
+    networks:
+      - app
+      - loki
 
   grafana:
     image: grafana/grafana:latest
-    container_name: grafana
     restart: unless-stopped
     ports:
-      - '${GRAFANA_PORT}:3000'
-    logging:
-      driver: 'loki'
-      options:
-        loki-url: "http://loki:${LOKI_PORT}/loki/api/v1/push"
+      - '3000:3000'
+    depends_on:
+      - loki
+    networks:
+      - app
+      - loki
 
 volumes:
   redis-data:
@@ -61,3 +88,7 @@ volumes:
     driver: local
   logs:
     driver: local
+
+networks:
+  app:
+  loki:
