@@ -1,5 +1,6 @@
 server:
   http_listen_port: 9080
+  grpc_listen_port: 0
 
 positions:
   filename: /tmp/positions.yaml
@@ -8,7 +9,7 @@ clients:
   - url: http://loki:3100/loki/api/v1/push
 
 scrape_configs:
-  - job_name: chat_app_scrape
+  - job_name: chat_app_logs
     docker_sd_configs:
       - host: unix:///var/run/docker.sock
         refresh_interval: 5s
@@ -19,7 +20,27 @@ scrape_configs:
       - source_labels: ['__meta_docker_container_name']
         regex: '/(.*)'
         target_label: 'container'
-      - source_labels: ['__meta_docker_container_log_stream']
-        target_label: 'logstream'
       - source_labels: ['__meta_docker_container_label_logging_jobname']
         target_label: 'job'
+    pipeline_stages:
+    - match:
+        selector: '{job="chat_app_logs"}'
+        stages:
+        - regex:
+            expression: 'user_id=(?P<userId>\d)'
+        - labels:
+            user_id: userId
+    - match:
+        selector: '{job="chat_app_logs"}'
+        stages:
+        - regex:
+            expression: 'chat_id=(?P<chatId>\d)'
+        - labels:
+            chat_id: chatId
+    - match:
+        selector: '{job="chat_app_logs"}'
+        stages:
+        - regex:
+            expression: 'session_id=(?P<sessionId>[^\s]*)'
+        - labels:
+            session_id: sessionId

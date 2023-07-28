@@ -9,8 +9,8 @@ services:
     ports:
       - '8001:8001'
     labels:
-      logging: 'promtail'
-      logging_jobname: 'containerlogs'
+      logging: "promtail"
+      logging_jobname: "chat_app_logs"
     depends_on:
       - redis-db
       - postgres-db
