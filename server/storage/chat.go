@@ -21,14 +21,6 @@ func (storage ChatStorage) GetAllChats() ([]models.Chat, error) {
 		return []models.Chat{}, r.Error
 	}
 
-	for i, chat := range chats {
-		messages, err := storage.GetAllMessages(chat.ID)
-		if err != nil {
-			return []models.Chat{}, err
-		}
-		chats[i].Messages = messages
-	}
-
 	return chats, nil
 }
 
@@ -38,12 +30,6 @@ func (storage ChatStorage) GetChatById(chatId uint) (models.Chat, error) {
 		return models.Chat{}, r.Error
 	}
 
-	messages, err := storage.GetAllMessages(chatId)
-	if err != nil {
-		return models.Chat{}, err
-	} 
-	chat.Messages = messages
-	
 	return chat, nil
 }
 

@@ -14,7 +14,7 @@ func init() {
 
 func NewLogger() *slog.Logger {
 	return slog.New(
-		slog.NewTextHandler(
+		slog.NewJSONHandler(
 			os.Stdout,
 			&slog.HandlerOptions{AddSource: true},
 		),

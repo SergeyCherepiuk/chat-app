@@ -1,7 +1,9 @@
 package main
 
 import (
-	"github.com/SergeyCherepiuk/chat-app/handlers"
+	authhandler "github.com/SergeyCherepiuk/chat-app/handlers/auth"
+	chathandler "github.com/SergeyCherepiuk/chat-app/handlers/chat"
+	userhandler "github.com/SergeyCherepiuk/chat-app/handlers/user"
 	"github.com/SergeyCherepiuk/chat-app/initializers"
 	"github.com/SergeyCherepiuk/chat-app/middleware"
 	"github.com/SergeyCherepiuk/chat-app/storage"
@@ -26,7 +28,7 @@ func main() {
 	api := app.Group("/api")
 
 	authStorage := storage.NewAuthStorage(pdb, rdb)
-	authHandler := handlers.NewAuthHandler(authStorage)
+	authHandler := authhandler.NewAuthHandler(authStorage)
 	auth := api.Group("/auth")
 	auth.Post("/signup", authHandler.SignUp)
 	auth.Post("/login", authHandler.Login)
@@ -34,17 +36,17 @@ func main() {
 
 	authMiddleware := middleware.NewAuthMiddleware(authStorage)
 	userStorage := storage.NewUserStorage(pdb)
-	userHandler := handlers.NewUserHandler(userStorage)
+	userHandler := userhandler.NewUserHandler(userStorage)
 	user := api.Group("/user")
 	user.Use(authMiddleware.CheckIfAuthenticated())
 	user.Get("/me", userHandler.GetMe)
-	user.Get("/:username", userHandler.GetUser)
+	user.Get("/:username", userHandler.GetByUsername)
 	user.Put("/me", userHandler.UpdateMe)
 	user.Delete("/me", userHandler.DeleteMe)
 
 	chat := api.Group("/chat")
 	chatStorage := storage.NewChatStorage(pdb)
-	chatHandler := handlers.NewChatHandler(chatStorage)
+	chatHandler := chathandler.NewChatHandler(chatStorage)
 	chat.Use(authMiddleware.CheckIfAuthenticated())
 	chat.Get("/", chatHandler.GetAll)
 	chat.Get("/:chat_id", chatHandler.GetById)

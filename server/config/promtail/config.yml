@@ -26,21 +26,20 @@ scrape_configs:
     - match:
         selector: '{job="chat_app_logs"}'
         stages:
-        - regex:
-            expression: 'user_id=(?P<userId>\d)'
+        - json:
+            expressions:
+                msg: msg
+                user_id: user_id
+                chat_id: chat_id
+                session_id: session_id
+                chats: chats
+                message: message
+                body: body
         - labels:
-            user_id: userId
-    - match:
-        selector: '{job="chat_app_logs"}'
-        stages:
-        - regex:
-            expression: 'chat_id=(?P<chatId>\d)'
-        - labels:
-            chat_id: chatId
-    - match:
-        selector: '{job="chat_app_logs"}'
-        stages:
-        - regex:
-            expression: 'session_id=(?P<sessionId>[^\s]*)'
-        - labels:
-            session_id: sessionId
+            msg: msg
+            user_id: user_id
+            chat_id: chat_id
+            session_id: session_id
+            chats: chats
+            message: message
+            body: body
