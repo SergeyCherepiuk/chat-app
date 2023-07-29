@@ -31,11 +31,8 @@ func (body UpdateUserRequestBody) ToMap() map[string]any {
 }
 
 func (handler UserHandler) UpdateMe(c *fiber.Ctx) error {
-	userId, ok := c.Locals("user_id").(uint)
-	if !ok {
-		return c.SendStatus(fiber.StatusUnauthorized)
-	}
-
+	userId, _ := c.Locals("user_id").(uint)
+	
 	body := UpdateUserRequestBody{}
 	if err := c.BodyParser(&body); err != nil {
 		return err

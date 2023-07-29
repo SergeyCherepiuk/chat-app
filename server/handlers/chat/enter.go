@@ -15,11 +15,7 @@ var chatIdsToConnections = make(map[uint][]*websocket.Conn)
 func (handler ChatHandler) Enter(c *websocket.Conn) {
 	defer c.Close()
 
-	userId, ok := c.Locals("user_id").(uint)
-	if !ok {
-		logger.Logger.Error("failed to parse user id", slog.Any("user_id", c.Locals("user_id")))
-		return
-	}
+	userId, _ := c.Locals("user_id").(uint)
 	l := logger.Logger.With(slog.Uint64("user_id", uint64(userId)))
 
 	chatId, err := strconv.ParseUint(c.Params("chat_id", ""), 10, 64)

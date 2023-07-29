@@ -1,4 +1,4 @@
-package authhandler_test
+package userhandler_test
 
 import (
 	"net/http"
@@ -10,21 +10,21 @@ import (
 	"github.com/google/uuid"
 )
 
-func TestInvalidLogoutRequest(t *testing.T) {
-	request := httptest.NewRequest(http.MethodPost, "/logout", nil)
+func TestUnauthorizedGetMeRequest(t *testing.T) {
+	request := httptest.NewRequest(http.MethodGet, "/me", nil)
 
 	response, _ := app.Test(request)
-	if response.StatusCode != fiber.StatusBadRequest {
+	if response.StatusCode != fiber.StatusUnauthorized {
 		t.Errorf(
 			"expected status code: %v, actual status code: %v\n",
-			fiber.StatusBadRequest,
+			fiber.StatusUnauthorized,
 			response.StatusCode,
 		)
 	}
 }
 
-func TestValidLogoutRequest(t *testing.T) {
-	request := httptest.NewRequest(http.MethodPost, "/logout", nil)
+func TestValidGetMeRequest(t *testing.T) {
+	request := httptest.NewRequest(http.MethodGet, "/me", nil)
 	request.AddCookie(&http.Cookie{
 		Name:     "session_id",
 		Value:    uuid.NewString(),

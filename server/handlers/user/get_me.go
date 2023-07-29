@@ -11,11 +11,8 @@ type GetUserResponseBody struct {
 }
 
 func (handler UserHandler) GetMe(c *fiber.Ctx) error {
-	userId, ok := c.Locals("user_id").(uint)
-	if !ok {
-		return c.SendStatus(fiber.StatusUnauthorized)
-	}
-
+	userId, _ := c.Locals("user_id").(uint)
+	
 	user, err := handler.storage.GetById(userId)
 	if err != nil {
 		return err

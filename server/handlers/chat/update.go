@@ -1,7 +1,6 @@
 package chathandler
 
 import (
-	"errors"
 	"strconv"
 	"strings"
 
@@ -25,11 +24,7 @@ func (body UpdateChatRequestBody) ToMap() map[string]any {
 }
 
 func (handler ChatHandler) Update(c *fiber.Ctx) error {
-	userId, ok := c.Locals("user_id").(uint)
-	if !ok {
-		logger.Logger.Error("failed to parse user id", slog.Any("user_id", c.Locals("user_id")))
-		return errors.New("failed to parse user id")
-	}
+	userId, _ := c.Locals("user_id").(uint)
 	l := logger.Logger.With(slog.Uint64("user_id", uint64(userId)))
 
 	chatId, err := strconv.ParseUint(c.Params("chat_id"), 10, 64)
