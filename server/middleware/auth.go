@@ -1,16 +1,16 @@
 package middleware
 
 import (
-	"github.com/SergeyCherepiuk/chat-app/storage"
+	authstorage "github.com/SergeyCherepiuk/chat-app/storage/auth"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 )
 
 type AuthMiddleware struct {
-	storage *storage.AuthStorage
+	storage authstorage.AuthStorage
 }
 
-func NewAuthMiddleware(storage *storage.AuthStorage) *AuthMiddleware {
+func NewAuthMiddleware(storage authstorage.AuthStorage) *AuthMiddleware {
 	return &AuthMiddleware{storage: storage}
 }
 

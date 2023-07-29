@@ -17,7 +17,7 @@ func (handler AuthHandler) Logout(c *fiber.Ctx) error {
 			slog.String("err", err.Error()),
 			slog.Any("session_id", sessionId),
 		)
-		return err
+		return c.Status(fiber.StatusBadRequest).SendString(err.Error())
 	}
 
 	if err := handler.storage.Logout(sessionId); err != nil {

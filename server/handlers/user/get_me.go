@@ -1,9 +1,14 @@
 package userhandler
 
 import (
-	"github.com/SergeyCherepiuk/chat-app/domain"
 	"github.com/gofiber/fiber/v2"
 )
+
+type GetUserResponseBody struct {
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Username  string `json:"username"`
+}
 
 func (handler UserHandler) GetMe(c *fiber.Ctx) error {
 	userId, ok := c.Locals("user_id").(uint)
@@ -16,7 +21,7 @@ func (handler UserHandler) GetMe(c *fiber.Ctx) error {
 		return err
 	}
 
-	responseBody := domain.GetUserResponseBody{
+	responseBody := GetUserResponseBody{
 		FirstName: user.FirstName,
 		LastName:  user.LastName,
 		Username:  user.Username,

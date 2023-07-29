@@ -1,11 +1,11 @@
 package chathandler
 
-import "github.com/SergeyCherepiuk/chat-app/storage"
+import chatstorage "github.com/SergeyCherepiuk/chat-app/storage/chat"
 
 type ChatHandler struct {
-	storage *storage.ChatStorage
+	storage chatstorage.ChatStorage
 }
 
-func NewChatHandler(storage *storage.ChatStorage) *ChatHandler {
+func New(storage chatstorage.ChatStorage) *ChatHandler {
 	return &ChatHandler{storage: storage}
 }

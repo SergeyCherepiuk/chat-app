@@ -1,4 +1,4 @@
-package storage
+package userstorage
 
 import (
 	"errors"
@@ -7,15 +7,22 @@ import (
 	"gorm.io/gorm"
 )
 
-type UserStorage struct {
+type UserStorage interface {
+	GetById(userId uint) (models.User, error)
+	GetByUsername(username string) (models.User, error)
+	Update(userId uint, updates map[string]any) error
+	Delete(userId uint) error
+}
+
+type UserStorageImpl struct {
 	pdb *gorm.DB
 }
 
-func NewUserStorage(pdb *gorm.DB) *UserStorage {
-	return &UserStorage{pdb: pdb}
+func New(pdb *gorm.DB) *UserStorageImpl {
+	return &UserStorageImpl{pdb: pdb}
 }
 
-func (storage UserStorage) GetById(userId uint) (models.User, error) {
+func (storage UserStorageImpl) GetById(userId uint) (models.User, error) {
 	user := models.User{}
 	r := storage.pdb.First(&user, userId)
 	if r.Error != nil {
@@ -24,7 +31,7 @@ func (storage UserStorage) GetById(userId uint) (models.User, error) {
 	return user, nil
 }
 
-func (storage UserStorage) GetByUsername(username string) (models.User, error) {
+func (storage UserStorageImpl) GetByUsername(username string) (models.User, error) {
 	user := models.User{}
 	r := storage.pdb.First(&user).Where("username = ?", username)
 	if r.Error != nil {
@@ -35,7 +42,7 @@ func (storage UserStorage) GetByUsername(username string) (models.User, error) {
 	return user, nil
 }
 
-func (storage UserStorage) Update(userId uint, updates map[string]any) error {
+func (storage UserStorageImpl) Update(userId uint, updates map[string]any) error {
 	user := models.User{ID: userId}
 	r := storage.pdb.Model(&user).Updates(updates)
 	if r.Error != nil {
@@ -46,7 +53,7 @@ func (storage UserStorage) Update(userId uint, updates map[string]any) error {
 	return nil
 }
 
-func (storage UserStorage) Delete(userId uint) error {
+func (storage UserStorageImpl) Delete(userId uint) error {
 	r := storage.pdb.Delete(&models.User{}, userId)
 	if r.Error != nil {
 		return r.Error

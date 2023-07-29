@@ -6,7 +6,9 @@ import (
 	userhandler "github.com/SergeyCherepiuk/chat-app/handlers/user"
 	"github.com/SergeyCherepiuk/chat-app/initializers"
 	"github.com/SergeyCherepiuk/chat-app/middleware"
-	"github.com/SergeyCherepiuk/chat-app/storage"
+	authstorage "github.com/SergeyCherepiuk/chat-app/storage/auth"
+	chatstorage "github.com/SergeyCherepiuk/chat-app/storage/chat"
+	userstorage "github.com/SergeyCherepiuk/chat-app/storage/user"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 	"github.com/redis/go-redis/v9"
@@ -27,16 +29,16 @@ func main() {
 
 	api := app.Group("/api")
 
-	authStorage := storage.NewAuthStorage(pdb, rdb)
-	authHandler := authhandler.NewAuthHandler(authStorage)
+	authStorage := authstorage.New(pdb, rdb)
+	authHandler := authhandler.New(authStorage)
 	auth := api.Group("/auth")
 	auth.Post("/signup", authHandler.SignUp)
 	auth.Post("/login", authHandler.Login)
 	auth.Post("/logout", authHandler.Logout)
 
 	authMiddleware := middleware.NewAuthMiddleware(authStorage)
-	userStorage := storage.NewUserStorage(pdb)
-	userHandler := userhandler.NewUserHandler(userStorage)
+	userStorage := userstorage.New(pdb)
+	userHandler := userhandler.New(userStorage)
 	user := api.Group("/user")
 	user.Use(authMiddleware.CheckIfAuthenticated())
 	user.Get("/me", userHandler.GetMe)
@@ -45,8 +47,8 @@ func main() {
 	user.Delete("/me", userHandler.DeleteMe)
 
 	chat := api.Group("/chat")
-	chatStorage := storage.NewChatStorage(pdb)
-	chatHandler := chathandler.NewChatHandler(chatStorage)
+	chatStorage := chatstorage.New(pdb)
+	chatHandler := chathandler.New(chatStorage)
 	chat.Use(authMiddleware.CheckIfAuthenticated())
 	chat.Get("/", chatHandler.GetAll)
 	chat.Get("/:chat_id", chatHandler.GetById)

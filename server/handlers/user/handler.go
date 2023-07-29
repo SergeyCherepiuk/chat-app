@@ -1,11 +1,13 @@
 package userhandler
 
-import "github.com/SergeyCherepiuk/chat-app/storage"
+import (
+	userstorage "github.com/SergeyCherepiuk/chat-app/storage/user"
+)
 
 type UserHandler struct {
-	storage *storage.UserStorage
+	storage userstorage.UserStorage
 }
 
-func NewUserHandler(storage *storage.UserStorage) *UserHandler {
+func New(storage userstorage.UserStorage) *UserHandler {
 	return &UserHandler{storage: storage}
 }

@@ -3,12 +3,26 @@ package chathandler
 import (
 	"errors"
 	"strconv"
+	"strings"
 
-	"github.com/SergeyCherepiuk/chat-app/domain"
 	"github.com/SergeyCherepiuk/chat-app/logger"
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/exp/slog"
 )
+
+type UpdateChatRequestBody struct {
+	Name string `json:"name"`
+}
+
+func (body UpdateChatRequestBody) ToMap() map[string]any {
+	updates := make(map[string]any)
+
+	if strings.TrimSpace(body.Name) != "" {
+		updates["name"] = body.Name
+	}
+
+	return updates
+}
 
 func (handler ChatHandler) Update(c *fiber.Ctx) error {
 	userId, ok := c.Locals("user_id").(uint)
@@ -29,7 +43,7 @@ func (handler ChatHandler) Update(c *fiber.Ctx) error {
 	}
 	l = l.With(slog.Uint64("chat_id", chatId))
 
-	body := domain.UpdateChatRequestBody{}
+	body := UpdateChatRequestBody{}
 	if err := c.BodyParser(&body); err != nil {
 		l.Error(
 			"failed to parse request body",

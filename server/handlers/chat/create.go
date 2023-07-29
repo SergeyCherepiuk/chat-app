@@ -2,13 +2,27 @@ package chathandler
 
 import (
 	"errors"
+	"strings"
 
-	"github.com/SergeyCherepiuk/chat-app/domain"
 	"github.com/SergeyCherepiuk/chat-app/logger"
 	"github.com/SergeyCherepiuk/chat-app/models"
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/exp/slog"
 )
+
+type CreateChatRequestBody struct {
+	Name string `json:"name"`
+}
+
+func (body CreateChatRequestBody) Validate() error {
+	var err error
+
+	if strings.TrimSpace(body.Name) == "" {
+		err = errors.Join(err, errors.New("name is empty"))
+	}
+
+	return err
+}
 
 func (handler ChatHandler) Create(c *fiber.Ctx) error {
 	userId, ok := c.Locals("user_id").(uint)
@@ -18,7 +32,7 @@ func (handler ChatHandler) Create(c *fiber.Ctx) error {
 	}
 	l := logger.Logger.With(slog.Uint64("user_id", uint64(userId)))
 
-	body := domain.CreateChatRequestBody{}
+	body := CreateChatRequestBody{}
 	if err := c.BodyParser(&body); err != nil {
 		l.Error(
 			"failed to parse request body",

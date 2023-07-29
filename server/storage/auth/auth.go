@@ -1,4 +1,4 @@
-package storage
+package authstorage
 
 import (
 	"context"
@@ -14,16 +14,23 @@ import (
 	"gorm.io/gorm"
 )
 
-type AuthStorage struct {
+type AuthStorage interface {
+	SignUp(user *models.User) (uuid.UUID, error)
+	Login(username, password string) (uuid.UUID, uint, error)
+	Check(sessionId uuid.UUID) (uint, error)
+	Logout(sessionId uuid.UUID) error
+}
+
+type AuthStorageImpl struct {
 	pdb *gorm.DB
 	rdb *redis.Client
 }
 
-func NewAuthStorage(pdb *gorm.DB, rdb *redis.Client) *AuthStorage {
-	return &AuthStorage{pdb: pdb, rdb: rdb}
+func New(pdb *gorm.DB, rdb *redis.Client) *AuthStorageImpl {
+	return &AuthStorageImpl{pdb: pdb, rdb: rdb}
 }
 
-func (storage AuthStorage) SignUp(user *models.User) (uuid.UUID, error) {
+func (storage AuthStorageImpl) SignUp(user *models.User) (uuid.UUID, error) {
 	sessionId := uuid.New()
 
 	tx := storage.pdb.Begin()
@@ -55,7 +62,7 @@ func (storage AuthStorage) SignUp(user *models.User) (uuid.UUID, error) {
 	return sessionId, nil
 }
 
-func (storage AuthStorage) Login(username, password string) (uuid.UUID,  uint, error) {
+func (storage AuthStorageImpl) Login(username, password string) (uuid.UUID,  uint, error) {
 	user := models.User{}
 	r := storage.pdb.Where("username = ?", username).First(&user)
 	if r.Error != nil {
@@ -83,7 +90,7 @@ func (storage AuthStorage) Login(username, password string) (uuid.UUID,  uint, e
 	return sessionId, user.ID, nil
 }
 
-func (storage AuthStorage) Check(sessionId uuid.UUID) (uint, error) {
+func (storage AuthStorageImpl) Check(sessionId uuid.UUID) (uint, error) {
 	userIdStr, err := storage.rdb.Get(context.Background(), sessionId.String()).Result()
 	if err != nil {
 		return 0, errors.New("session not found")
@@ -97,7 +104,7 @@ func (storage AuthStorage) Check(sessionId uuid.UUID) (uint, error) {
 	return uint(userId), nil
 }
 
-func (storage AuthStorage) Logout(sessionId uuid.UUID) error {
+func (storage AuthStorageImpl) Logout(sessionId uuid.UUID) error {
 	userId, err := storage.rdb.Get(context.Background(), sessionId.String()).Result()
 	if err != nil {
 		return err

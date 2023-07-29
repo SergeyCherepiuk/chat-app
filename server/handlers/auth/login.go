@@ -1,18 +1,40 @@
 package authhandler
 
 import (
+	"errors"
+	"strings"
 	"time"
 
-	"github.com/SergeyCherepiuk/chat-app/domain"
 	"github.com/SergeyCherepiuk/chat-app/logger"
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/exp/slog"
 )
 
+type LoginRequestBody struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+func (body LoginRequestBody) Validate() error {
+	var err error
+
+	if strings.TrimSpace(body.Username) == "" {
+		err = errors.Join(errors.New("username is empty"))
+	}
+
+	if strings.TrimSpace(body.Password) == "" {
+		err = errors.Join(err, errors.New("password is empty"))
+	} else if len(body.Password) < 8 {
+		err = errors.Join(err, errors.New("password is too short"))
+	}
+
+	return err
+}
+
 func (handler AuthHandler) Login(c *fiber.Ctx) error {
-	body := domain.LoginRequestBody{}
+	body := LoginRequestBody{}
 	if err := c.BodyParser(&body); err != nil {
-		logger.Logger.Error("failed to hash the password", slog.String("err", err.Error()))
+		logger.Logger.Error("failed to parse the body", slog.String("err", err.Error()))
 		return err
 	}
 
@@ -22,7 +44,7 @@ func (handler AuthHandler) Login(c *fiber.Ctx) error {
 			slog.String("err", err.Error()),
 			slog.Any("body", body),
 		)
-		return err
+		return c.Status(fiber.StatusBadRequest).SendString(err.Error())
 	}
 
 	sessionId, userId, err := handler.storage.Login(body.Username, body.Password)

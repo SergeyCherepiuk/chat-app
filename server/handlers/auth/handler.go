@@ -1,11 +1,13 @@
 package authhandler
 
-import "github.com/SergeyCherepiuk/chat-app/storage"
+import (
+	authstorage "github.com/SergeyCherepiuk/chat-app/storage/auth"
+)
 
 type AuthHandler struct {
-	storage *storage.AuthStorage
+	storage authstorage.AuthStorage
 }
 
-func NewAuthHandler(storage *storage.AuthStorage) *AuthHandler {
+func New(storage authstorage.AuthStorage) *AuthHandler {
 	return &AuthHandler{storage: storage}
 }

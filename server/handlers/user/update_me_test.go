@@ -1,12 +1,14 @@
-package domain
+package userhandler_test
 
 import (
 	"reflect"
 	"testing"
+
+	userhandler "github.com/SergeyCherepiuk/chat-app/handlers/user"
 )
 
 func TestConvertValidUpdateUserRequestBodyToMap(t *testing.T) {
-	body := UpdateUserRequestBody{
+	body := userhandler.UpdateUserRequestBody{
 		FirstName: "Andrew",
 		LastName:  "Brown",
 		Username:  "andrewbrown",
@@ -20,23 +22,23 @@ func TestConvertValidUpdateUserRequestBodyToMap(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(actual, expected) {
-		t.Errorf("Expected: %v, got: %v", actual, expected)
+		t.Errorf("expected: %v, got: %v", actual, expected)
 	}
 }
 
 func TestConvertEmptyUpdateUserRequestBodyToMap(t *testing.T) {
-	body := UpdateUserRequestBody{}
+	body := userhandler.UpdateUserRequestBody{}
 
 	actual := body.ToMap()
 	expected := map[string]any{}
 
 	if !reflect.DeepEqual(actual, expected) {
-		t.Errorf("Expected: %v, got: %v", actual, expected)
+		t.Errorf("expected: %v, got: %v", actual, expected)
 	}
 }
 
 func TestConvertWhiteSpaceUpdateUserRequestBodyToMap(t *testing.T) {
-	body := UpdateUserRequestBody{
+	body := userhandler.UpdateUserRequestBody{
 		FirstName: "",
 		LastName:  " ",
 		Username:  "  ",
@@ -46,6 +48,6 @@ func TestConvertWhiteSpaceUpdateUserRequestBodyToMap(t *testing.T) {
 	expected := map[string]any{}
 
 	if !reflect.DeepEqual(actual, expected) {
-		t.Errorf("Expected: %v, got: %v", actual, expected)
+		t.Errorf("expected: %v, got: %v", actual, expected)
 	}
 }
