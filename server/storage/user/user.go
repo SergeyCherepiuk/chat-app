@@ -33,7 +33,7 @@ func (storage UserStorageImpl) GetById(userId uint) (models.User, error) {
 
 func (storage UserStorageImpl) GetByUsername(username string) (models.User, error) {
 	user := models.User{}
-	r := storage.pdb.First(&user).Where("username = ?", username)
+	r := storage.pdb.Where("username = ?", username).First(&user)
 	if r.Error != nil {
 		return models.User{}, r.Error
 	} else if r.RowsAffected < 1 {

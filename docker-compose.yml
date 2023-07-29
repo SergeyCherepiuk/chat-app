@@ -86,8 +86,6 @@ volumes:
     driver: local
   postgres-data:
     driver: local
-  logs:
-    driver: local
 
 networks:
   app:

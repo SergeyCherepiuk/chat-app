@@ -40,11 +40,7 @@ func (handler ChatHandler) Update(c *fiber.Ctx) error {
 
 	body := UpdateChatRequestBody{}
 	if err := c.BodyParser(&body); err != nil {
-		l.Error(
-			"failed to parse request body",
-			slog.String("err", err.Error()),
-			slog.Any("body", body),
-		)
+		l.Error("failed to parse request body", slog.String("err", err.Error()))
 		return err
 	}
 

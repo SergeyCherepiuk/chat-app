@@ -1,7 +1,9 @@
 package userhandler
 
 import (
+	"github.com/SergeyCherepiuk/chat-app/logger"
 	"github.com/gofiber/fiber/v2"
+	"golang.org/x/exp/slog"
 )
 
 type GetUserResponseBody struct {
@@ -12,9 +14,11 @@ type GetUserResponseBody struct {
 
 func (handler UserHandler) GetMe(c *fiber.Ctx) error {
 	userId, _ := c.Locals("user_id").(uint)
-	
+	l := logger.Logger.With(slog.Uint64("user_id", uint64(userId)))
+
 	user, err := handler.storage.GetById(userId)
 	if err != nil {
+		l.Error("failed to get user by id", slog.String("err", err.Error()))
 		return err
 	}
 
@@ -23,5 +27,6 @@ func (handler UserHandler) GetMe(c *fiber.Ctx) error {
 		LastName:  user.LastName,
 		Username:  user.Username,
 	}
+	l.Info("user's info has been sent to the user", slog.Any("user", responseBody))
 	return c.JSON(responseBody)
 }
