@@ -37,16 +37,10 @@ func (storage UserStorageMock) GetByUsername(username string) (models.User, erro
 
 func (storage UserStorageMock) Update(userId uint, updates map[string]any) error {
 	_, err := storage.GetById(userId)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (storage UserStorageMock) Delete(userId uint) error {
 	_, err := storage.GetById(userId)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }

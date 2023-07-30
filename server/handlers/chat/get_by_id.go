@@ -19,7 +19,7 @@ func (handler ChatHandler) GetById(c *fiber.Ctx) error {
 			slog.String("err", err.Error()),
 			slog.Any("chat_id", c.Params("chat_id")),
 		)
-		return err
+		return c.Status(fiber.StatusBadRequest).SendString(err.Error())
 	}
 	l = l.With(slog.Uint64("chat_id", chatId))
 

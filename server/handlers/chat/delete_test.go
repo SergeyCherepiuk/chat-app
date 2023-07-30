@@ -1,4 +1,4 @@
-package userhandler_test
+package chathandler_test
 
 import (
 	"net/http"
@@ -10,8 +10,8 @@ import (
 	"github.com/google/uuid"
 )
 
-func TestUnauthorizedGetByUsernameRequest(t *testing.T) {
-	request := httptest.NewRequest(http.MethodGet, "/markwatson", nil)
+func TestUnauthorizedDeleteChatRequest(t *testing.T) {
+	request := httptest.NewRequest(http.MethodDelete, "/1", nil)
 
 	response, _ := app.Test(request)
 	if response.StatusCode != fiber.StatusUnauthorized {
@@ -23,8 +23,27 @@ func TestUnauthorizedGetByUsernameRequest(t *testing.T) {
 	}
 }
 
-func TestUserNotFoundGetByUsernameRequest(t *testing.T) {
-	request := httptest.NewRequest(http.MethodGet, "/theodavis", nil)
+func TestInvalidDeleteChatRequest(t *testing.T) {
+	request := httptest.NewRequest(http.MethodDelete, "/asd", nil)
+	request.AddCookie(&http.Cookie{
+		Name:     "session_id",
+		Value:    uuid.NewString(),
+		HttpOnly: true,
+		Expires:  time.Now().Add(7 * 24 * time.Hour),
+	})
+
+	response, _ := app.Test(request)
+	if response.StatusCode != fiber.StatusBadRequest {
+		t.Errorf(
+			"expected status code: %v, actual status code: %v\n",
+			fiber.StatusBadRequest,
+			response.StatusCode,
+		)
+	}
+}
+
+func TestChatNotFoundDeleteChatRequest(t *testing.T) {
+	request := httptest.NewRequest(http.MethodDelete, "/2", nil)
 	request.AddCookie(&http.Cookie{
 		Name:     "session_id",
 		Value:    uuid.NewString(),
@@ -42,8 +61,8 @@ func TestUserNotFoundGetByUsernameRequest(t *testing.T) {
 	}
 }
 
-func TestValidGetByUsernameRequest(t *testing.T) {
-	request := httptest.NewRequest(http.MethodGet, "/markwatson", nil)
+func TestValidDeleteChatRequest(t *testing.T) {
+	request := httptest.NewRequest(http.MethodDelete, "/1", nil)
 	request.AddCookie(&http.Cookie{
 		Name:     "session_id",
 		Value:    uuid.NewString(),
@@ -55,7 +74,7 @@ func TestValidGetByUsernameRequest(t *testing.T) {
 	if response.StatusCode != fiber.StatusOK {
 		t.Errorf(
 			"expected status code: %v, actual status code: %v\n",
-			fiber.StatusUnauthorized,
+			fiber.StatusOK,
 			response.StatusCode,
 		)
 	}
