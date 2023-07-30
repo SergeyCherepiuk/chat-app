@@ -16,36 +16,70 @@ func (handler ChatHandler) Enter(c *websocket.Conn) {
 	defer c.Close()
 
 	userId, _ := c.Locals("user_id").(uint)
-	l := logger.Logger.With(slog.Uint64("user_id", uint64(userId)))
 
 	chatId, err := strconv.ParseUint(c.Params("chat_id", ""), 10, 64)
 	if err != nil {
-		l.Error("failed to parse chat id", slog.Any("chat_id", c.Params("chat_id")))
+		logger.LogMessages <- logger.LogMessage{
+			Message: "failed to parse chat id",
+			Level:   slog.LevelError,
+			Attrs: []slog.Attr{
+				slog.String("err", err.Error()),
+				slog.Uint64("user_id", uint64(userId)),
+				slog.Any("chat_id", c.Params("chat_id")),
+			},
+		}
 		return
 	}
-	l = l.With(slog.Uint64("chat_id", chatId))
 
 	if isExists := handler.storage.IsChatExists(uint(chatId)); !isExists {
-		l.Error("failed to find the chat")
+		logger.LogMessages <- logger.LogMessage{
+			Message: "failed to find the chat",
+			Level:   slog.LevelError,
+			Attrs: []slog.Attr{
+				slog.String("err", err.Error()),
+				slog.Uint64("user_id", uint64(userId)),
+				slog.Uint64("chat_id", chatId),
+			},
+		}
 		return
 	}
 
 	chatIdsToConnections[uint(chatId)] = append(chatIdsToConnections[uint(chatId)], c)
-	l.Info("user has been connected to the chat")
+	logger.LogMessages <- logger.LogMessage{
+		Message: "user has been connected to the chat",
+		Level:   slog.LevelInfo,
+		Attrs: []slog.Attr{
+			slog.Uint64("user_id", uint64(userId)),
+			slog.Uint64("chat_id", chatId),
+		},
+	}
 
 	messages, err := handler.storage.GetAllMessages(uint(chatId))
 	if err != nil {
-		l.Error("failed to get chat history", slog.String("err", err.Error()))
+		logger.LogMessages <- logger.LogMessage{
+			Message: "failed to get chat history",
+			Level:   slog.LevelError,
+			Attrs: []slog.Attr{
+				slog.String("err", err.Error()),
+				slog.Uint64("user_id", uint64(userId)),
+				slog.Uint64("chat_id", chatId),
+			},
+		}
 		return
 	}
 
 	for _, message := range messages {
 		if err := c.WriteJSON(message); err != nil {
-			l.Error(
-				"failed to send a message to the user",
-				slog.String("err", err.Error()),
-				slog.Any("message", message),
-			)
+			logger.LogMessages <- logger.LogMessage{
+				Message: "failed to get chat history",
+				Level:   slog.LevelError,
+				Attrs: []slog.Attr{
+					slog.String("err", err.Error()),
+					slog.Uint64("user_id", uint64(userId)),
+					slog.Uint64("chat_id", chatId),
+					slog.Any("message", message),
+				},
+			}
 			return
 		}
 	}
@@ -53,11 +87,27 @@ func (handler ChatHandler) Enter(c *websocket.Conn) {
 	for {
 		_, text, err := c.ReadMessage()
 		if websocket.IsCloseError(err, 1000, 1005) {
-			l.Info("user has been disconnected", slog.String("err", err.Error()))
+			logger.LogMessages <- logger.LogMessage{
+				Message: "user has been disconnected",
+				Level:   slog.LevelInfo,
+				Attrs: []slog.Attr{
+					slog.String("err", err.Error()),
+					slog.Uint64("user_id", uint64(userId)),
+					slog.Uint64("chat_id", chatId),
+				},
+			}
 			return
 		}
 		if err != nil {
-			l.Error("failed to read the message", slog.String("err", err.Error()))
+			logger.LogMessages <- logger.LogMessage{
+				Message: "failed to read the message",
+				Level:   slog.LevelError,
+				Attrs: []slog.Attr{
+					slog.String("err", err.Error()),
+					slog.Uint64("user_id", uint64(userId)),
+					slog.Uint64("chat_id", chatId),
+				},
+			}
 			return
 		}
 
@@ -68,27 +118,45 @@ func (handler ChatHandler) Enter(c *websocket.Conn) {
 			SentAt: time.Now(),
 		}
 		if err := handler.storage.CreateMessage(&message); err != nil {
-			l.Error(
-				"failed to store the message in the database",
-				slog.String("err", err.Error()),
-				slog.Any("message", message),
-			)
+			logger.LogMessages <- logger.LogMessage{
+				Message: "failed to store the message in the database",
+				Level:   slog.LevelError,
+				Attrs: []slog.Attr{
+					slog.String("err", err.Error()),
+					slog.Uint64("user_id", uint64(userId)),
+					slog.Uint64("chat_id", chatId),
+					slog.Any("message", message),
+				},
+			}
 			return
 		}
 
 		for _, ws := range chatIdsToConnections[uint(chatId)] {
 			if ws != c {
 				if err := ws.WriteJSON(message); err != nil {
-					l.Error(
-						"failed to send a message to other users",
-						slog.String("err", err.Error()),
-						slog.Any("sender_connection", c),
-						slog.Any("recipient_connection", ws),
-					)
+					logger.LogMessages <- logger.LogMessage{
+						Message: "failed to send a message to other users",
+						Level:   slog.LevelError,
+						Attrs: []slog.Attr{
+							slog.String("err", err.Error()),
+							slog.Uint64("user_id", uint64(userId)),
+							slog.Uint64("chat_id", chatId),
+							slog.Any("sender_connection", c),
+							slog.Any("recipient_connection", ws),
+						},
+					}
 					return
 				}
 			}
 		}
-		l.Info("user has sent the message", slog.Any("message", message))
+		logger.LogMessages <- logger.LogMessage{
+			Message: "user has sent the message",
+			Level:   slog.LevelInfo,
+			Attrs: []slog.Attr{
+				slog.Uint64("user_id", uint64(userId)),
+				slog.Uint64("chat_id", chatId),
+				slog.Any("message", message),
+			},
+		}
 	}
 }

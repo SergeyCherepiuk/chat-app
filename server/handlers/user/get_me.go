@@ -14,11 +14,17 @@ type GetUserResponseBody struct {
 
 func (handler UserHandler) GetMe(c *fiber.Ctx) error {
 	userId, _ := c.Locals("user_id").(uint)
-	l := logger.Logger.With(slog.Uint64("user_id", uint64(userId)))
 
 	user, err := handler.storage.GetById(userId)
 	if err != nil {
-		l.Error("failed to get user by id", slog.String("err", err.Error()))
+		logger.LogMessages <- logger.LogMessage{
+			Message: "failed to get user by id",
+			Level:   slog.LevelError,
+			Attrs: []slog.Attr{
+				slog.String("err", err.Error()),
+				slog.Uint64("user_id", uint64(userId)),
+			},
+		}
 		return err
 	}
 
@@ -27,6 +33,13 @@ func (handler UserHandler) GetMe(c *fiber.Ctx) error {
 		LastName:  user.LastName,
 		Username:  user.Username,
 	}
-	l.Info("user's info has been sent to the user", slog.Any("user", responseBody))
+	logger.LogMessages <- logger.LogMessage{
+		Message: "user's info has been sent to the user",
+		Level:   slog.LevelInfo,
+		Attrs: []slog.Attr{
+			slog.Uint64("user_id", uint64(userId)),
+			slog.Any("user", responseBody),
+		},
+	}
 	return c.JSON(responseBody)
 }

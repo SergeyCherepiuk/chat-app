@@ -26,20 +26,40 @@ func (body CreateChatRequestBody) Validate() error {
 
 func (handler ChatHandler) Create(c *fiber.Ctx) error {
 	userId, _ := c.Locals("user_id").(uint)
-	l := logger.Logger.With(slog.Uint64("user_id", uint64(userId)))
 
 	body := CreateChatRequestBody{}
 	if err := c.BodyParser(&body); err != nil {
-		l.Error("failed to parse request body", slog.String("err", err.Error()))
+		logger.LogMessages <- logger.LogMessage{
+			Message: "failed to parse request body",
+			Level:   slog.LevelError,
+			Attrs: []slog.Attr{
+				slog.String("err", err.Error()),
+				slog.Uint64("user_id", uint64(userId)),
+			},
+		}
 		return err
 	}
 
 	chat := models.Chat{Name: body.Name}
 	if err := handler.storage.CreateChat(&chat); err != nil {
-		l.Error("failed to create new chat", slog.String("err", err.Error()))
+		logger.LogMessages <- logger.LogMessage{
+			Message: "failed to create new chat",
+			Level:   slog.LevelError,
+			Attrs: []slog.Attr{
+				slog.String("err", err.Error()),
+				slog.Uint64("user_id", uint64(userId)),
+			},
+		}
 		return err
 	}
 
-	l.Info("new chat has been created", slog.Any("chat", chat))
+	logger.LogMessages <- logger.LogMessage{
+		Message: "new chat has been created",
+		Level:   slog.LevelInfo,
+		Attrs: []slog.Attr{
+			slog.Any("chat", chat),
+			slog.Uint64("user_id", uint64(userId)),
+		},
+	}
 	return c.SendStatus(fiber.StatusOK)
 }

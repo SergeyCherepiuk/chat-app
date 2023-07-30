@@ -10,10 +10,16 @@ import (
 
 func (handler UserHandler) DeleteMe(c *fiber.Ctx) error {
 	userId, _ := c.Locals("user_id").(uint)
-	l := logger.Logger.With(slog.Uint64("user_id", uint64(userId)))
 
 	if err := handler.storage.Delete(userId); err != nil {
-		l.Error("failed to delete the user", slog.String("err", err.Error()))
+		logger.LogMessages <- logger.LogMessage{
+			Message: "failed to delete the user",
+			Level:   slog.LevelError,
+			Attrs: []slog.Attr{
+				slog.String("err", err.Error()),
+				slog.Uint64("user_id", uint64(userId)),
+			},
+		}
 		return err
 	}
 
@@ -22,6 +28,10 @@ func (handler UserHandler) DeleteMe(c *fiber.Ctx) error {
 		Name:    "session_id",
 		Expires: time.Now(),
 	})
-	l.Info("user has been deleted")
+	logger.LogMessages <- logger.LogMessage{
+		Message: "user has been deleted",
+		Level:   slog.LevelInfo,
+		Attrs:   []slog.Attr{slog.Uint64("user_id", uint64(userId))},
+	}
 	return c.SendStatus(fiber.StatusOK)
 }

@@ -20,21 +20,27 @@ func (middleware AuthMiddleware) CheckIfAuthenticated() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		sessionId, err := uuid.Parse(c.Cookies("session_id", ""))
 		if err != nil {
-			logger.Logger.Error(
-				"failed to parse UUID",
-				slog.String("err", err.Error()),
-				slog.String("session_id", c.Cookies("session_id", "")),
-			)
+			logger.LogMessages <- logger.LogMessage{
+				Message: "failed to update the user",
+				Level:   slog.LevelError,
+				Attrs: []slog.Attr{
+					slog.String("err", err.Error()),
+					slog.String("session_id", c.Cookies("session_id", "")),
+				},
+			}
 			return c.SendStatus(fiber.StatusUnauthorized)
 		}
 
 		userId, err := middleware.storage.Check(sessionId)
 		if err != nil {
-			logger.Logger.Error(
-				"failed to find a session",
-				slog.String("err", err.Error()),
-				slog.Any("session_id", sessionId),
-			)
+			logger.LogMessages <- logger.LogMessage{
+				Message: "failed to find a session",
+				Level:   slog.LevelError,
+				Attrs: []slog.Attr{
+					slog.String("err", err.Error()),
+					slog.Any("session_id", sessionId),
+				},
+			}
 			return c.SendStatus(fiber.StatusUnauthorized)
 		}
 

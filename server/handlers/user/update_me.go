@@ -34,24 +34,41 @@ func (body UpdateUserRequestBody) ToMap() map[string]any {
 
 func (handler UserHandler) UpdateMe(c *fiber.Ctx) error {
 	userId, _ := c.Locals("user_id").(uint)
-	l := logger.Logger.With(slog.Uint64("user_id", uint64(userId)))
 
 	body := UpdateUserRequestBody{}
 	if err := c.BodyParser(&body); err != nil {
-		l.Error("failed to parse request body", slog.String("err", err.Error()))
+		logger.LogMessages <- logger.LogMessage{
+			Message: "failed to parse request body",
+			Level:   slog.LevelError,
+			Attrs: []slog.Attr{
+				slog.String("err", err.Error()),
+				slog.Uint64("user_id", uint64(userId)),
+			},
+		}
 		return err
 	}
 
 	updates := body.ToMap()
 	if err := handler.storage.Update(userId, updates); err != nil {
-		l.Error(
-			"failed to update the user",
-			slog.String("err", err.Error()),
-			slog.Any("updates", updates),
-		)
+		logger.LogMessages <- logger.LogMessage{
+			Message: "failed to update the user",
+			Level:   slog.LevelError,
+			Attrs: []slog.Attr{
+				slog.String("err", err.Error()),
+				slog.Uint64("user_id", uint64(userId)),
+				slog.Any("updates", updates),
+			},
+		}
 		return err
 	}
 
-	l.Info("user has been updated", slog.Any("updates", updates))
+	logger.LogMessages <- logger.LogMessage{
+		Message: "user has been updated",
+		Level:   slog.LevelInfo,
+		Attrs: []slog.Attr{
+			slog.Uint64("user_id", uint64(userId)),
+			slog.Any("updates", updates),
+		},
+	}
 	return c.SendStatus(fiber.StatusOK)
 }

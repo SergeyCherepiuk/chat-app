@@ -5,6 +5,7 @@ import (
 	chathandler "github.com/SergeyCherepiuk/chat-app/handlers/chat"
 	userhandler "github.com/SergeyCherepiuk/chat-app/handlers/user"
 	"github.com/SergeyCherepiuk/chat-app/initializers"
+	"github.com/SergeyCherepiuk/chat-app/logger"
 	"github.com/SergeyCherepiuk/chat-app/middleware"
 	authstorage "github.com/SergeyCherepiuk/chat-app/storage/auth"
 	chatstorage "github.com/SergeyCherepiuk/chat-app/storage/chat"
@@ -59,6 +60,8 @@ func main() {
 	ws := chat.Group("")
 	ws.Use(middleware.Upgrade)
 	ws.Get("/:chat_id/enter", websocket.New(chatHandler.Enter, websocket.Config{}))
+
+	go logger.HandleLogs()
 
 	app.Listen(":8001")
 }
