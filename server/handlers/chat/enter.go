@@ -52,6 +52,10 @@ func (handler ChatHandler) Enter(c *websocket.Conn) {
 
 	for {
 		_, text, err := c.ReadMessage()
+		if websocket.IsCloseError(err, 1000, 1005) {
+			l.Info("user has been disconnected", slog.String("err", err.Error()))
+			return
+		}
 		if err != nil {
 			l.Error("failed to read the message", slog.String("err", err.Error()))
 			return
