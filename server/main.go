@@ -38,7 +38,7 @@ func main() {
 	auth.Post("/logout", authHandler.Logout)
 
 	authMiddleware := middleware.NewAuthMiddleware(authStorage)
-	userStorage := userstorage.New(pdb)
+	userStorage := userstorage.New(pdb, rdb)
 	userHandler := userhandler.New(userStorage)
 	user := api.Group("/user")
 	user.Use(authMiddleware.CheckIfAuthenticated())

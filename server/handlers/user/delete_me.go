@@ -23,7 +23,6 @@ func (handler UserHandler) DeleteMe(c *fiber.Ctx) error {
 		return err
 	}
 
-	// TODO: Clear session id in Redis
 	c.Cookie(&fiber.Cookie{
 		Name:    "session_id",
 		Expires: time.Now(),

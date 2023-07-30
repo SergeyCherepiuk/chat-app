@@ -1,9 +1,12 @@
 package userstorage
 
 import (
+	"context"
 	"errors"
+	"fmt"
 
 	"github.com/SergeyCherepiuk/chat-app/models"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
@@ -16,10 +19,11 @@ type UserStorage interface {
 
 type UserStorageImpl struct {
 	pdb *gorm.DB
+	rdb *redis.Client
 }
 
-func New(pdb *gorm.DB) *UserStorageImpl {
-	return &UserStorageImpl{pdb: pdb}
+func New(pdb *gorm.DB, rdb *redis.Client) *UserStorageImpl {
+	return &UserStorageImpl{pdb: pdb, rdb: rdb}
 }
 
 func (storage UserStorageImpl) GetById(userId uint) (models.User, error) {
@@ -54,6 +58,9 @@ func (storage UserStorageImpl) Update(userId uint, updates map[string]any) error
 }
 
 func (storage UserStorageImpl) Delete(userId uint) error {
+	sessionId, _ := storage.rdb.Get(context.Background(), fmt.Sprint(userId)).Result()
+	storage.rdb.Del(context.Background(), sessionId, fmt.Sprint(userId)).Result()
+
 	r := storage.pdb.Delete(&models.User{}, userId)
 	if r.Error != nil {
 		return r.Error
