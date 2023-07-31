@@ -15,6 +15,8 @@ require (
 	golang.org/x/crypto v0.11.0
 )
 
+require github.com/emirpasic/gods v1.18.1 // indirect
+
 require golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1 // direct
 
 require (

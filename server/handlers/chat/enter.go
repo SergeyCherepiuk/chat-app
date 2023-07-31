@@ -6,11 +6,12 @@ import (
 
 	"github.com/SergeyCherepiuk/chat-app/logger"
 	"github.com/SergeyCherepiuk/chat-app/models"
+	"github.com/emirpasic/gods/sets/hashset"
 	"github.com/gofiber/contrib/websocket"
 	"golang.org/x/exp/slog"
 )
 
-var chatIdsToConnections = make(map[uint][]*websocket.Conn)
+var chatIdsToConnections = make(map[uint]*hashset.Set)
 
 func (handler ChatHandler) Enter(c *websocket.Conn) {
 	defer c.Close()
@@ -44,7 +45,10 @@ func (handler ChatHandler) Enter(c *websocket.Conn) {
 		return
 	}
 
-	chatIdsToConnections[uint(chatId)] = append(chatIdsToConnections[uint(chatId)], c)
+	if _, ok := chatIdsToConnections[uint(chatId)]; !ok {
+		chatIdsToConnections[uint(chatId)] = hashset.New()
+	}
+	chatIdsToConnections[uint(chatId)].Add(c)
 	logger.LogMessages <- logger.LogMessage{
 		Message: "user has been connected to the chat",
 		Level:   slog.LevelInfo,
@@ -53,7 +57,9 @@ func (handler ChatHandler) Enter(c *websocket.Conn) {
 			slog.Uint64("chat_id", chatId),
 		},
 	}
-	defer removeConnection(c, uint(chatId))
+	defer func() {
+		chatIdsToConnections[uint(chatId)].Remove(c)
+	}()
 
 	messages, err := handler.storage.GetAllMessages(uint(chatId))
 	if err != nil {
@@ -132,9 +138,9 @@ func (handler ChatHandler) Enter(c *websocket.Conn) {
 			return
 		}
 
-		for _, ws := range chatIdsToConnections[uint(chatId)] {
+		for _, ws := range chatIdsToConnections[uint(chatId)].Values() {
 			if ws != c {
-				if err := ws.WriteJSON(message); err != nil {
+				if err := ws.(*websocket.Conn).WriteJSON(message); err != nil {
 					logger.LogMessages <- logger.LogMessage{
 						Message: "failed to send a message to other users",
 						Level:   slog.LevelError,
@@ -158,17 +164,6 @@ func (handler ChatHandler) Enter(c *websocket.Conn) {
 				slog.Uint64("chat_id", chatId),
 				slog.Any("message", message),
 			},
-		}
-	}
-}
-
-func removeConnection(c *websocket.Conn, chatId uint) {
-	connections, ok := chatIdsToConnections[chatId]
-	if ok {
-		for i, conn := range connections {
-			if conn == c {
-				chatIdsToConnections[chatId] = append(connections[0:i], connections[i+1:]...)
-			}
 		}
 	}
 }
