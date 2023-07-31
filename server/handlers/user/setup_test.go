@@ -2,6 +2,7 @@ package userhandler_test
 
 import (
 	userhandler "github.com/SergeyCherepiuk/chat-app/handlers/user"
+	"github.com/SergeyCherepiuk/chat-app/logger"
 	"github.com/SergeyCherepiuk/chat-app/middleware"
 	authstorage "github.com/SergeyCherepiuk/chat-app/storage/auth"
 	userstorage "github.com/SergeyCherepiuk/chat-app/storage/user"
@@ -23,4 +24,6 @@ func init() {
 	app.Get("/:username", userHandler.GetByUsername)
 	app.Put("/me", userHandler.UpdateMe)
 	app.Delete("/me", userHandler.DeleteMe)
+
+	go logger.HandleLogs()
 }

@@ -2,6 +2,7 @@ package chathandler_test
 
 import (
 	chathandler "github.com/SergeyCherepiuk/chat-app/handlers/chat"
+	"github.com/SergeyCherepiuk/chat-app/logger"
 	"github.com/SergeyCherepiuk/chat-app/middleware"
 	authstorage "github.com/SergeyCherepiuk/chat-app/storage/auth"
 	chatstorage "github.com/SergeyCherepiuk/chat-app/storage/chat"
@@ -29,4 +30,6 @@ func init() {
 	ws := app.Group("")
 	ws.Use(middleware.Upgrade)
 	ws.Get("/:chat_id/enter", websocket.New(chatHandler.Enter, websocket.Config{}))
+
+	go logger.HandleLogs()
 }
