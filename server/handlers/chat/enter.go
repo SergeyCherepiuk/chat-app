@@ -53,6 +53,7 @@ func (handler ChatHandler) Enter(c *websocket.Conn) {
 			slog.Uint64("chat_id", chatId),
 		},
 	}
+	defer removeConnection(c, uint(chatId))
 
 	messages, err := handler.storage.GetAllMessages(uint(chatId))
 	if err != nil {
@@ -157,6 +158,17 @@ func (handler ChatHandler) Enter(c *websocket.Conn) {
 				slog.Uint64("chat_id", chatId),
 				slog.Any("message", message),
 			},
+		}
+	}
+}
+
+func removeConnection(c *websocket.Conn, chatId uint) {
+	connections, ok := chatIdsToConnections[chatId]
+	if ok {
+		for i, conn := range connections {
+			if conn == c {
+				chatIdsToConnections[chatId] = append(connections[0:i], connections[i+1:]...)
+			}
 		}
 	}
 }
