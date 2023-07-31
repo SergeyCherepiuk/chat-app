@@ -61,7 +61,9 @@ func main() {
 	ws.Use(middleware.Upgrade)
 	ws.Get("/:chat_id/enter", websocket.New(chatHandler.Enter, websocket.Config{}))
 
-	go logger.HandleLogs()
+	for i := 0; i < 10; i++ {
+		go logger.HandleLogs()
+	}
 
 	app.Listen(":8001")
 }

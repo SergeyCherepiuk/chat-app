@@ -44,38 +44,30 @@ func (body SignUpRequestBody) Validate() error {
 }
 
 func (handler AuthHandler) SignUp(c *fiber.Ctx) error {
+	log := logger.Logger{}
+
 	body := SignUpRequestBody{}
 	if err := c.BodyParser(&body); err != nil {
-		logger.LogMessages <- logger.LogMessage{
-			Message: "failed to parse the body",
-			Level:   slog.LevelError,
-			Attrs:   []slog.Attr{slog.String("err", err.Error())},
-		}
+		log.Error("failed to parse the body", slog.String("err", err.Error()))
 		return err
 	}
 
 	if err := body.Validate(); err != nil {
-		logger.LogMessages <- logger.LogMessage{
-			Message: "request body isn't valid",
-			Level:   slog.LevelError,
-			Attrs: []slog.Attr{
-				slog.String("err", err.Error()),
-				slog.Any("body", body),
-			},
-		}
+		log.Error(
+			"request body isn't valid",
+			slog.String("err", err.Error()),
+			slog.Any("body", body),
+		)
 		return c.Status(fiber.StatusBadRequest).SendString(err.Error())
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(body.Password), 10)
 	if err != nil {
-		logger.LogMessages <- logger.LogMessage{
-			Message: "failed to hash the password",
-			Level:   slog.LevelError,
-			Attrs: []slog.Attr{
-				slog.String("err", err.Error()),
-				slog.String("password", body.Password),
-			},
-		}
+		log.Error(
+			"failed to hash the password",
+			slog.String("err", err.Error()),
+			slog.String("password", body.Password),
+		)
 		return err
 	}
 
@@ -87,25 +79,19 @@ func (handler AuthHandler) SignUp(c *fiber.Ctx) error {
 	}
 	sessionId, err := handler.storage.SignUp(&user)
 	if err != nil {
-		logger.LogMessages <- logger.LogMessage{
-			Message: "failed to sign up the user",
-			Level:   slog.LevelError,
-			Attrs: []slog.Attr{
-				slog.String("err", err.Error()),
-				slog.Any("user", user),
-			},
-		}
+		log.Error(
+			"failed to sign up the user",
+			slog.String("err", err.Error()),
+			slog.Any("user", user),
+		)
 		return err
 	}
 
-	logger.LogMessages <- logger.LogMessage{
-		Message: "user has been signed up",
-		Level:   slog.LevelInfo,
-		Attrs: []slog.Attr{
-			slog.Uint64("user_id", uint64(user.ID)),
-			slog.Any("session_id", sessionId),
-		},
-	}
+	log.Info(
+		"user has been signed up",
+		slog.Uint64("user_id", uint64(user.ID)),
+		slog.Any("session_id", sessionId),
+	)
 	c.Cookie(&fiber.Cookie{
 		Name:     "session_id",
 		Value:    sessionId.String(),

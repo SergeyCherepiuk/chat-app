@@ -7,16 +7,10 @@ import (
 	"golang.org/x/exp/slog"
 )
 
-type LogMessage struct {
-	Message string
-	Level   slog.Level
-	Attrs   []slog.Attr
-}
-
-var LogMessages chan LogMessage
+var logs chan message
 
 func init() {
-	LogMessages = make(chan LogMessage)
+	logs = make(chan message, 10)
 }
 
 func newLogger() *slog.Logger {
@@ -31,7 +25,7 @@ func newLogger() *slog.Logger {
 func HandleLogs() {
 	logger := newLogger()
 	for {
-		logMessage := <-LogMessages
+		logMessage := <-logs
 		logger.LogAttrs(
 			context.Background(),
 			logMessage.Level,

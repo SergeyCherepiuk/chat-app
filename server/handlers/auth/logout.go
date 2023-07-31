@@ -10,33 +10,24 @@ import (
 )
 
 func (handler AuthHandler) Logout(c *fiber.Ctx) error {
+	log := logger.Logger{}
+
 	sessionId, err := uuid.Parse(c.Cookies("session_id", ""))
 	if err != nil {
-		logger.LogMessages <- logger.LogMessage{
-			Message: "invalid session id",
-			Level:   slog.LevelError,
-			Attrs: []slog.Attr{
-				slog.String("err", err.Error()),
-				slog.Any("session_id", sessionId),
-			},
-		}
+		log.Error(
+			"invalid session id",
+			slog.String("err", err.Error()),
+			slog.Any("session_id", sessionId),
+		)
 		return c.Status(fiber.StatusBadRequest).SendString(err.Error())
 	}
 
 	if err := handler.storage.Logout(sessionId); err != nil {
-		logger.LogMessages <- logger.LogMessage{
-			Message: "failed to log out user",
-			Level:   slog.LevelError,
-			Attrs:   []slog.Attr{slog.String("err", err.Error())},
-		}
+		log.Error("failed to log out user", slog.String("err", err.Error()))
 		return err
 	}
 
-	logger.LogMessages <- logger.LogMessage{
-		Message: "user has been logged out",
-		Level:   slog.LevelInfo,
-		Attrs:   []slog.Attr{slog.Any("session_id", sessionId)},
-	}
+	log.Info("user has been logged out", slog.Any("session_id", sessionId))
 	c.Cookie(&fiber.Cookie{
 		Name:    "session_id",
 		Expires: time.Now(),

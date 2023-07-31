@@ -32,46 +32,34 @@ func (body LoginRequestBody) Validate() error {
 }
 
 func (handler AuthHandler) Login(c *fiber.Ctx) error {
+	log := logger.Logger{}
+
 	body := LoginRequestBody{}
 	if err := c.BodyParser(&body); err != nil {
-		logger.LogMessages <- logger.LogMessage{
-			Message: "failed to parse the body",
-			Level:   slog.LevelError,
-			Attrs:   []slog.Attr{slog.String("err", err.Error())},
-		}
+		log.Error("failed to parse the body", slog.String("err", err.Error()))
 		return err
 	}
 
 	if err := body.Validate(); err != nil {
-		logger.LogMessages <- logger.LogMessage{
-			Message: "request body isn't valid",
-			Level:   slog.LevelError,
-			Attrs: []slog.Attr{
-				slog.String("err", err.Error()),
-				slog.Any("body", body),
-			},
-		}
+		log.Error(
+			"request body isn't valid",
+			slog.String("err", err.Error()),
+			slog.Any("body", body),
+		)
 		return c.Status(fiber.StatusBadRequest).SendString(err.Error())
 	}
 
 	sessionId, userId, err := handler.storage.Login(body.Username, body.Password)
 	if err != nil {
-		logger.LogMessages <- logger.LogMessage{
-			Message: "failed to log in user",
-			Level:   slog.LevelError,
-			Attrs:   []slog.Attr{slog.String("err", err.Error())},
-		}
+		log.Error("failed to log in user", slog.String("err", err.Error()))
 		return err
 	}
 
-	logger.LogMessages <- logger.LogMessage{
-		Message: "user has been logged in",
-		Level:   slog.LevelInfo,
-		Attrs: []slog.Attr{
-			slog.Uint64("user_id", uint64(userId)),
-			slog.Any("session_id", sessionId),
-		},
-	}
+	log.Info(
+		"user has been logged in",
+		slog.Uint64("user_id", uint64(userId)),
+		slog.Any("session_id", sessionId),
+	)
 	c.Cookie(&fiber.Cookie{
 		Name:     "session_id",
 		Value:    sessionId.String(),
