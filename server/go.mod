@@ -11,6 +11,7 @@ require (
 	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1 // direct
 	gorm.io/driver/postgres v1.5.2 // direct
 	gorm.io/gorm v1.25.2 // direct
+	github.com/jmoiron/sqlx v1.3.5 // direct
 )
 
 require (
