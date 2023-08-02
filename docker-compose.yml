@@ -1,16 +1,16 @@
 version: '3.9'
 services:
-  chat-app:
+  server:
     build:
       context: ./server
       dockerfile: Dockerfile
-    image: chat-app
+    image: server
     restart: unless-stopped
     ports:
       - '8001:8001'
     labels:
       logging: "promtail"
-      logging_jobname: "chat_app_logs"
+      logging_jobname: "server_logs"
     depends_on:
       - redis-db
       - postgres-db
@@ -42,6 +42,21 @@ services:
     networks:
       - app
     
+  migrator:
+    build:
+      context: ./migrator
+      dockerfile: Dockerfile
+    image: migrator
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    depends_on:
+      - postgres-db
+    networks:
+      - app
+
   loki:
     image: grafana/loki:latest
     container_name: 'loki'
