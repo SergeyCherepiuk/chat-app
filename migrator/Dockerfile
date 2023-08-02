@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y gcc
 RUN go install github.com/pressly/goose/v3/cmd/goose@latest
 
 RUN mkdir -p /opt/migrations
-COPY ./migrations /opt/migrations
+COPY ./old-migrations /opt/migrations
 WORKDIR /opt/migrations
 
 ARG POSTGRES_USER

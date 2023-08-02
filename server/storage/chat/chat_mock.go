@@ -18,8 +18,8 @@ var chats = []models.Chat{
 }
 
 var messages = []models.Message{
-	{ID: 1, Text: "First message", SentAt: time.Now(), UserID: 1, ChatID: 1},
-	{ID: 2, Text: "Second message", SentAt: time.Now(), UserID: 2, ChatID: 1},
+	{ID: 1, Message: "First message", SentAt: time.Now(), UserID: 1, ChatID: 1},
+	{ID: 2, Message: "Second message", SentAt: time.Now(), UserID: 2, ChatID: 1},
 }
 
 func (storage ChatStorageMock) GetAllChats() ([]models.Chat, error) {

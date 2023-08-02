@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/SergeyCherepiuk/chat-app/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -19,11 +18,6 @@ func PostgresMustConnect() *gorm.DB {
 
 	dsn := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s", user, password, host, port, dbname)
 	db, err := gorm.Open(postgres.Open(dsn))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = db.AutoMigrate(&models.User{}, &models.Chat{}, &models.Message{})
 	if err != nil {
 		log.Fatal(err)
 	}
