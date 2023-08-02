@@ -42,20 +42,20 @@ services:
     networks:
       - app
     
-  migrator:
-    build:
-      context: ./migrator
-      dockerfile: Dockerfile
-    image: migrator
-    deploy:
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-    depends_on:
-      - postgres-db
-    networks:
-      - app
+  # migrator:
+  #   build:
+  #     context: ./migrator
+  #     dockerfile: Dockerfile
+  #   image: migrator
+  #   deploy:
+  #     restart_policy:
+  #       condition: on-failure
+  #       delay: 5s
+  #       max_attempts: 3
+  #   depends_on:
+  #     - postgres-db
+  #   networks:
+  #     - app
 
   loki:
     image: grafana/loki:latest
