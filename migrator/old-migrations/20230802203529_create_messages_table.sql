@@ -7,8 +7,8 @@ create table messages (
     id bigserial primary key,
     message text not null,
     sent_at timestamp not null,
-    user_id bigint references users(id),
-    chat_id bigint references chats(id) not null
+    user_id bigint references users(id) on delete set null,
+    chat_id bigint not null references chats(id) on delete cascade
 );
 
 -- +goose Down

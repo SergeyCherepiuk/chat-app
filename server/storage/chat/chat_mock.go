@@ -35,7 +35,7 @@ func (storage ChatStorageMock) GetChatById(chatId uint) (models.Chat, error) {
 	return models.Chat{}, errors.New("chat not found")
 }
 
-func (storage ChatStorageMock) CreateChat(chat *models.Chat) error {
+func (storage ChatStorageMock) CreateChat(chat models.Chat) error {
 	return nil
 }
 
@@ -66,7 +66,7 @@ func (storage ChatStorageMock) CreateMessage(message *models.Message) error {
 	return nil
 }
 
-func (storage ChatStorageMock) UpdateMessage(messageId uint, updatedText string) error {
+func (storage ChatStorageMock) UpdateMessage(messageId uint, updatedMessage string) error {
 	for _, m := range messages {
 		if m.ID == messageId {
 			return nil

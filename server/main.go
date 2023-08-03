@@ -12,12 +12,12 @@ import (
 	userstorage "github.com/SergeyCherepiuk/chat-app/storage/user"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
+	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
-	"gorm.io/gorm"
 )
 
 var rdb *redis.Client
-var pdb *gorm.DB
+var pdb *sqlx.DB
 
 func init() {
 	initializers.LoadEnv()

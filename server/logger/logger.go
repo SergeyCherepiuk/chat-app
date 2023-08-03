@@ -17,7 +17,7 @@ func newLogger() *slog.Logger {
 	return slog.New(
 		slog.NewJSONHandler(
 			os.Stdout,
-			&slog.HandlerOptions{AddSource: true},
+			&slog.HandlerOptions{},
 		),
 	)
 }

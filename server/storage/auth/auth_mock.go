@@ -11,9 +11,10 @@ func NewMock() *AuthStorageMock {
 	return &AuthStorageMock{}
 }
 
-func (storage AuthStorageMock) SignUp(user *models.User) (uuid.UUID, error) {
+func (storage AuthStorageMock) SignUp(user models.User) (uuid.UUID, uint, error) {
 	sessionId := uuid.New()
-	return sessionId, nil
+	var userId uint = 1
+	return sessionId, userId, nil
 }
 
 func (storage AuthStorageMock) Login(username, password string) (uuid.UUID, uint, error) {

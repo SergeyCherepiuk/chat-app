@@ -37,7 +37,7 @@ func (handler ChatHandler) Create(c *fiber.Ctx) error {
 	}
 
 	chat := models.Chat{Name: body.Name}
-	if err := handler.storage.CreateChat(&chat); err != nil {
+	if err := handler.storage.CreateChat(chat); err != nil {
 		log.Error("failed to create new chat", slog.String("err", err.Error()))
 		return err
 	}

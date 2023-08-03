@@ -76,9 +76,9 @@ func (handler ChatHandler) Enter(c *websocket.Conn) {
 
 		message := models.Message{
 			Message: string(text),
+			SentAt:  time.Now(),
 			UserID:  userId,
 			ChatID:  uint(chatId),
-			SentAt:  time.Now(),
 		}
 		if err := handler.storage.CreateMessage(&message); err != nil {
 			log.Error(

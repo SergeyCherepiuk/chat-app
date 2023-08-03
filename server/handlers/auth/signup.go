@@ -77,7 +77,7 @@ func (handler AuthHandler) SignUp(c *fiber.Ctx) error {
 		Username:  body.Username,
 		Password:  string(hashedPassword),
 	}
-	sessionId, err := handler.storage.SignUp(&user)
+	sessionId, userId, err := handler.storage.SignUp(user)
 	if err != nil {
 		log.Error(
 			"failed to sign up the user",
@@ -89,7 +89,7 @@ func (handler AuthHandler) SignUp(c *fiber.Ctx) error {
 
 	log.Info(
 		"user has been signed up",
-		slog.Uint64("user_id", uint64(user.ID)),
+		slog.Uint64("user_id", uint64(userId)),
 		slog.Any("session_id", sessionId),
 	)
 	c.Cookie(&fiber.Cookie{
