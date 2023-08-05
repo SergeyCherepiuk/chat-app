@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
-	userhandler "github.com/SergeyCherepiuk/chat-app/handlers/user"
+	userdomain "github.com/SergeyCherepiuk/chat-app/domain/user"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 )
 
 func TestConvertValidUpdateUserRequestBodyToMap(t *testing.T) {
-	body := userhandler.UpdateUserRequestBody{
+	body := userdomain.UpdateUserRequestBody{
 		FirstName: "Andrew",
 		LastName:  "Brown",
 		Username:  "andrewbrown",
@@ -33,7 +33,7 @@ func TestConvertValidUpdateUserRequestBodyToMap(t *testing.T) {
 }
 
 func TestConvertEmptyUpdateUserRequestBodyToMap(t *testing.T) {
-	body := userhandler.UpdateUserRequestBody{}
+	body := userdomain.UpdateUserRequestBody{}
 
 	actual := body.ToMap()
 	expected := map[string]any{}
@@ -44,7 +44,7 @@ func TestConvertEmptyUpdateUserRequestBodyToMap(t *testing.T) {
 }
 
 func TestConvertWhiteSpaceUpdateUserRequestBodyToMap(t *testing.T) {
-	body := userhandler.UpdateUserRequestBody{
+	body := userdomain.UpdateUserRequestBody{
 		FirstName: "",
 		LastName:  " ",
 		Username:  "  ",

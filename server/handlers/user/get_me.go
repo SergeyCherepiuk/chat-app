@@ -1,16 +1,11 @@
 package userhandler
 
 import (
+	userdomain "github.com/SergeyCherepiuk/chat-app/domain/user"
 	"github.com/SergeyCherepiuk/chat-app/logger"
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/exp/slog"
 )
-
-type GetUserResponseBody struct {
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Username  string `json:"username"`
-}
 
 func (handler UserHandler) GetMe(c *fiber.Ctx) error {
 	log := logger.Logger{}
@@ -24,7 +19,7 @@ func (handler UserHandler) GetMe(c *fiber.Ctx) error {
 		return err
 	}
 
-	responseBody := GetUserResponseBody{
+	responseBody := userdomain.GetUserResponseBody{
 		FirstName: user.FirstName,
 		LastName:  user.LastName,
 		Username:  user.Username,

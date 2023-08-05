@@ -1,22 +1,15 @@
 package chatstorage
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/SergeyCherepiuk/chat-app/models"
 	"github.com/jmoiron/sqlx"
 )
 
 type ChatStorage interface {
-	GetAllChats() ([]models.Chat, error)
-	GetChatById(chatId uint) (models.Chat, error)
-	CreateChat(chat models.Chat) error
-	UpdateChat(chatId uint, updates map[string]any) error
-	DeleteChat(chatId uint) error
-	IsChatExists(chatId uint) bool
-	GetAllMessages(chatId uint) ([]models.Message, error)
-	CreateMessage(message *models.Message) error
+	GetChatHistory(userId, companionId uint) ([]models.ChatMessage, error)
+	DeleteChat(userId, companionId uint) error
+	CreateMessage(message *models.ChatMessage) error
+	IsMessageBelongToChat(messageId, userId, companionId uint) (bool, error)
 	UpdateMessage(messageId uint, updatedMessage string) error
 	DeleteMessage(messageId uint) error
 }
@@ -29,146 +22,32 @@ func New(pdb *sqlx.DB) *ChatStorageImpl {
 	return &ChatStorageImpl{pdb: pdb}
 }
 
-func (storage ChatStorageImpl) GetAllChats() ([]models.Chat, error) {
-	query := `SELECT * FROM chats`
-
-	stmt, err := storage.pdb.Preparex(query)
-	if err != nil {
-		return []models.Chat{}, err
-	}
-	defer stmt.Close()
-
-	chats := []models.Chat{}
-	if err := stmt.Select(&chats); err != nil {
-		return []models.Chat{}, err
-	}
-
-	return chats, nil
-}
-
-func (storage ChatStorageImpl) GetChatById(chatId uint) (models.Chat, error) {
-	query := `SELECT * FROM chats WHERE id = :chat_id`
+func (storage ChatStorageImpl) GetChatHistory(userId, companionId uint) ([]models.ChatMessage, error) {
+	query := `SELECT * FROM chat_messages WHERE (message_from = :user_id AND message_to = :companion_id) OR (message_from = :companion_id AND message_to = :user_id)`
 	namedParams := map[string]any{
-		"chat_id": chatId,
+		"user_id":      userId,
+		"companion_id": companionId,
 	}
 
 	stmt, err := storage.pdb.PrepareNamed(query)
 	if err != nil {
-		return models.Chat{}, err
+		return []models.ChatMessage{}, err
 	}
 	defer stmt.Close()
 
-	chat := models.Chat{}
-	if err := stmt.Get(&chat, namedParams); err != nil {
-		return models.Chat{}, err
-	}
-
-	return chat, nil
-}
-
-func (storage ChatStorageImpl) CreateChat(chat models.Chat) error {
-	query := `INSERT INTO chats (name) VALUES (:name)`
-	namedParams := map[string]any{
-		"name": chat.Name,
-	}
-
-	stmt, err := storage.pdb.PrepareNamed(query)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(namedParams)
-	return err
-}
-
-func (storage ChatStorageImpl) UpdateChat(chatId uint, updates map[string]any) error {
-	query := []byte("UPDATE chats SET ")
-	namedParams := map[string]any{
-		"chat_id": chatId,
-	}
-
-	updatesPairs := []string{}
-	for k, v := range updates {
-		switch v.(type) {
-		case string, rune, byte, []byte:
-			updatesPairs = append(updatesPairs, fmt.Sprintf("%s = '%s'", k, v))
-		default:
-			updatesPairs = append(updatesPairs, fmt.Sprintf("%s = %s", k, v))
-		}
-	}
-	query = append(query, strings.Join(updatesPairs, ", ")...)
-	query = append(query, "WHERE id = :chat_id"...)
-
-	stmt, err := storage.pdb.PrepareNamed(string(query))
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(namedParams)
-	return err
-}
-
-func (storage ChatStorageImpl) DeleteChat(chatId uint) error {
-	query := `DELETE FROM chats WHERE id = :chat_id`
-	namedParams := map[string]any{
-		"chat_id": chatId,
-	}
-
-	stmt, err := storage.pdb.PrepareNamed(query)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(namedParams)
-	return err
-}
-
-func (storage ChatStorageImpl) IsChatExists(chatId uint) bool {
-	query := `SELECT FROM users WHERE id = :chat_id`
-	namedParams := map[string]any{
-		"chat_id": chatId,
-	}
-
-	stmt, err := storage.pdb.PrepareNamed(query)
-	if err != nil {
-		return false
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(namedParams)
-	return err == nil
-}
-
-func (storage ChatStorageImpl) GetAllMessages(chatId uint) ([]models.Message, error) {
-	query := `SELECT * FROM messages WHERE chat_id = :chat_id`
-	namedParams := map[string]any{
-		"chat_id": chatId,
-	}
-
-	stmt, err := storage.pdb.PrepareNamed(query)
-	if err != nil {
-		return []models.Message{}, err
-	}
-	defer stmt.Close()
-
-	messages := []models.Message{}
+	messages := []models.ChatMessage{}
 	if err := stmt.Select(&messages, namedParams); err != nil {
-		return []models.Message{}, err
+		return []models.ChatMessage{}, err
 	}
 
 	return messages, nil
 }
 
-func (storage ChatStorageImpl) CreateMessage(message *models.Message) error {
-	query := `INSERT INTO messages (message, sent_at, user_id, chat_id) VALUES (:message, :sent_at, :user_id, :chat_id) RETURNING id`
+func (storage ChatStorageImpl) DeleteChat(userId, companionId uint) error {
+	query := `DELETE FROM chat_messages WHERE (message_from = :user_id AND message_to = :companion_id) OR (message_from = :companion_id AND message_to = :user_id)`
 	namedParams := map[string]any{
-		"message": message.Message,
-		"sent_at": message.SentAt,
-		"user_id": message.UserID,
-		"chat_id": message.ChatID,
+		"user_id":      userId,
+		"companion_id": companionId,
 	}
 
 	stmt, err := storage.pdb.PrepareNamed(query)
@@ -177,17 +56,60 @@ func (storage ChatStorageImpl) CreateMessage(message *models.Message) error {
 	}
 	defer stmt.Close()
 
-	var messageId uint
-	if err := stmt.Get(&messageId, namedParams); err != nil {
+	_, err = stmt.Exec(namedParams)
+	return err
+}
+
+func (storage ChatStorageImpl) CreateMessage(message *models.ChatMessage) error {
+	query := `INSERT INTO chat_messages (message_from, message_to, message, is_edited) VALUES (:message_from, :message_to, :message, :is_edited) RETURNING *`
+	namedParams := map[string]any{
+		"message_from": message.From,
+		"message_to":   message.To,
+		"message":      message.Message,
+		"is_edited":    message.IsEdited,
+	}
+
+	stmt, err := storage.pdb.PrepareNamed(query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	messageAfterInsert := models.ChatMessage{}
+	if err := stmt.Get(&messageAfterInsert, namedParams); err != nil {
 		return err
 	}
 
-	message.ID = messageId
+	message.ID = messageAfterInsert.ID
+	message.CreatedAt = messageAfterInsert.CreatedAt
 	return nil
 }
 
+func (storage ChatStorageImpl) IsMessageBelongToChat(messageId, userId, companionId uint) (bool, error) {
+	query := `SELECT FROM chat_messages WHERE id = :message_id AND ((message_from = :user_id AND message_to = :companion_id) OR (message_from = :companion_id AND message_to = :user_id))`
+	namedParams := map[string]any{
+		"message_id":   messageId,
+		"user_id":      userId,
+		"companion_id": companionId,
+	}
+
+	stmt, err := storage.pdb.PrepareNamed(query)
+	if err != nil {
+		return false, err
+	}
+	defer stmt.Close()
+
+	if result, err := stmt.Exec(namedParams); err != nil {
+		return false, err
+	} else if rowsAffected, err := result.RowsAffected(); err != nil {
+		return false, err
+	} else {
+		return rowsAffected > 0, nil
+	}
+}
+
 func (storage ChatStorageImpl) UpdateMessage(messageId uint, updatedMessage string) error {
-	query := `UPDATE messages SET message := message`
+	query := `UPDATE chat_messages SET message = :message, is_edited = true WHERE id = :message_id`
 	namedParams := map[string]any{
 		"message_id": messageId,
 		"message":    updatedMessage,
@@ -204,7 +126,7 @@ func (storage ChatStorageImpl) UpdateMessage(messageId uint, updatedMessage stri
 }
 
 func (storage ChatStorageImpl) DeleteMessage(messageId uint) error {
-	query := `DELETE FROM message WHERE id = :message_id`
+	query := `DELETE FROM chat_messages WHERE id = :message_id`
 	namedParams := map[string]any{
 		"message_id": messageId,
 	}

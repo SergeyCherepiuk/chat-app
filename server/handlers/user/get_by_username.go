@@ -1,16 +1,11 @@
 package userhandler
 
 import (
+	userdomain "github.com/SergeyCherepiuk/chat-app/domain/user"
 	"github.com/SergeyCherepiuk/chat-app/logger"
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/exp/slog"
 )
-
-type GetMeResponseBody struct {
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Username  string `json:"username"`
-}
 
 func (handler UserHandler) GetByUsername(c *fiber.Ctx) error {
 	log := logger.Logger{}
@@ -28,10 +23,11 @@ func (handler UserHandler) GetByUsername(c *fiber.Ctx) error {
 		return err
 	}
 
-	responseBody := GetMeResponseBody{
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
-		Username:  user.Username,
+	responseBody := userdomain.GetUserResponseBody{
+		FirstName:   user.FirstName,
+		LastName:    user.LastName,
+		Username:    user.Username,
+		Description: user.Description,
 	}
 	log.Info("user's info has been sent to the user", slog.Any("user", responseBody))
 	return c.JSON(responseBody)

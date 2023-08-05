@@ -30,15 +30,20 @@ func main() {
 
 	api := app.Group("/api")
 
-	authStorage := authstorage.New(pdb, rdb)
+	sessionManager := authstorage.NewSessionManager(rdb)
+	authStorage := authstorage.New(pdb, sessionManager)
+	chatStorage := chatstorage.New(pdb)
+	userStorage := userstorage.New(pdb, rdb)
+
+	authMiddleware := middleware.NewAuthMiddleware(authStorage)
+	chatMiddleware := middleware.NewChatMiddleware(userStorage, chatStorage)
+
 	authHandler := authhandler.New(authStorage)
 	auth := api.Group("/auth")
 	auth.Post("/signup", authHandler.SignUp)
 	auth.Post("/login", authHandler.Login)
 	auth.Post("/logout", authHandler.Logout)
 
-	authMiddleware := middleware.NewAuthMiddleware(authStorage)
-	userStorage := userstorage.New(pdb, rdb)
 	userHandler := userhandler.New(userStorage)
 	user := api.Group("/user")
 	user.Use(authMiddleware.CheckIfAuthenticated())
@@ -47,19 +52,20 @@ func main() {
 	user.Put("/me", userHandler.UpdateMe)
 	user.Delete("/me", userHandler.DeleteMe)
 
-	chat := api.Group("/chat")
-	chatStorage := chatstorage.New(pdb)
-	chatHandler := chathandler.New(chatStorage)
+	chatHandler := chathandler.New(chatStorage, userStorage)
+	chat := api.Group("/chat/:username")
 	chat.Use(authMiddleware.CheckIfAuthenticated())
-	chat.Get("/", chatHandler.GetAll)
-	chat.Get("/:chat_id", chatHandler.GetById)
-	chat.Post("/", chatHandler.Create)
-	chat.Put("/:chat_id", chatHandler.Update)
-	chat.Delete("/:chat_id", chatHandler.Delete)
+	chat.Use(chatMiddleware.CheckIfCompanionExists())
+	chat.Delete("/", chatHandler.DeleteChat)
+
+	message := chat.Group("/:message_id")
+	message.Use(chatMiddleware.CheckIfBelongsToChat())
+	message.Put("/", chatHandler.UpdateMessage)
+	message.Delete("/", chatHandler.DeleteMessage)
 
 	ws := chat.Group("")
 	ws.Use(middleware.Upgrade)
-	ws.Get("/:chat_id/enter", websocket.New(chatHandler.Enter, websocket.Config{}))
+	ws.Get("/", websocket.New(chatHandler.EnterChat, websocket.Config{}))
 
 	for i := 0; i < 10; i++ {
 		go logger.HandleLogs()
