@@ -19,6 +19,15 @@ func (handler ChatHandler) UpdateMessage(c *fiber.Ctx) error {
 		return err
 	}
 
+	if err := body.Validate(); err != nil {
+		log.Error(
+			"request body isn't valid",
+			slog.String("err", err.Error()),
+			slog.Any("body", body),
+		)
+		return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+	}
+
 	if err := handler.chatStorage.UpdateMessage(messageId, body.Message); err != nil {
 		log.Error("failed to update the message", slog.String("err", err.Error()))
 		return err

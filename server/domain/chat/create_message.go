@@ -5,11 +5,11 @@ import (
 	"strings"
 )
 
-type UpdateMessageRequestBody struct {
+type CreateMessageBody struct {
 	Message string `json:"message"`
 }
 
-func (body *UpdateMessageRequestBody) Validate() error {
+func (body *CreateMessageBody) Validate() error {
 	body.Message = strings.TrimSpace(body.Message)
 
 	var err error

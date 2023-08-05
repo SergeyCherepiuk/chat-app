@@ -8,18 +8,19 @@ type UpdateUserRequestBody struct {
 	Username  string `json:"username"`
 }
 
-func (body UpdateUserRequestBody) ToMap() map[string]any {
-	updates := make(map[string]any)
+func (body *UpdateUserRequestBody) ToMap() map[string]any {
+	body.FirstName = strings.TrimSpace(body.FirstName)
+	body.LastName = strings.TrimSpace(body.LastName)
+	body.Username = strings.TrimSpace(body.Username)
 
-	if strings.TrimSpace(body.FirstName) != "" {
+	updates := make(map[string]any)
+	if body.FirstName != "" {
 		updates["first_name"] = body.FirstName
 	}
-
-	if strings.TrimSpace(body.LastName) != "" {
+	if body.LastName != "" {
 		updates["last_name"] = body.LastName
 	}
-
-	if strings.TrimSpace(body.Username) != "" {
+	if body.Username != "" {
 		updates["username"] = body.Username
 	}
 

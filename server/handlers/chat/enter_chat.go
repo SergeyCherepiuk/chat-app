@@ -1,6 +1,7 @@
 package chathandler
 
 import (
+	chatdomain "github.com/SergeyCherepiuk/chat-app/domain/chat"
 	"github.com/SergeyCherepiuk/chat-app/logger"
 	"github.com/SergeyCherepiuk/chat-app/models"
 	"github.com/emirpasic/gods/sets/hashset"
@@ -71,8 +72,18 @@ func (handler ChatHandler) EnterChat(c *websocket.Conn) {
 			return
 		}
 
+		body := chatdomain.CreateMessageBody{Message: string(text)}
+		if err := body.Validate(); err != nil {
+			log.Error(
+				"body isn't valid",
+				slog.String("err", err.Error()),
+				slog.Any("body", body),
+			)
+			continue
+		}
+
 		message := models.ChatMessage{
-			Message:  string(text),
+			Message:  body.Message,
 			From:     userId,
 			To:       companionId,
 			IsEdited: false,
