@@ -51,7 +51,16 @@ func (storage ChatStorageMock) IsMessageBelongToChat(messageId, userId, companio
 	return false, errors.New("message not found in chat")
 }
 
-func (storage  ChatStorageMock) UpdateMessage(messageId uint, updatedMessage string) error {
+func (storage ChatStorageMock) IsAuthor(messageId, userId uint) (bool, error) {
+	for _, message := range messages {
+		if message.ID == messageId {
+			return message.From == userId, nil
+		}
+	}
+	return false, errors.New("message not found")
+}
+
+func (storage ChatStorageMock) UpdateMessage(messageId uint, updatedMessage string) error {
 	for _, message := range messages {
 		if message.ID == messageId {
 			message.Message = updatedMessage

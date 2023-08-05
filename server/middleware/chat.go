@@ -70,11 +70,36 @@ func (middleware ChatMiddleware) CheckIfBelongsToChat() fiber.Handler {
 		}
 
 		if !isBelong {
-			log.Error("failed to find message in chat")
-			return c.SendStatus(fiber.StatusBadRequest)
+			log.Warn("user not belongs to the chat")
+			return c.SendStatus(fiber.StatusUnauthorized)
 		}
 
 		c.Locals("message_id", uint(messageId))
+		return c.Next()
+	}
+}
+
+func (middleware ChatMiddleware) CheckIfAuthor() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		log := logger.Logger{}
+
+		userId := c.Locals("user_id").(uint)
+		log.With(slog.Uint64("user_id", uint64(userId)))
+
+		messageId := c.Locals("message_id").(uint)
+		log.With(slog.Uint64("message_id", uint64(messageId)))
+
+		isAuthor, err := middleware.chatStorage.IsAuthor(messageId, userId)
+		if err != nil {
+			log.Error("failed to find out if user is an author", slog.String("err", err.Error()))
+			return err
+		}
+
+		if !isAuthor {
+			log.Warn("user isn't an author of the message")
+			return c.SendStatus(fiber.StatusUnauthorized)
+		}
+
 		return c.Next()
 	}
 }

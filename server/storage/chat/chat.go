@@ -10,6 +10,7 @@ type ChatStorage interface {
 	DeleteChat(userId, companionId uint) error
 	CreateMessage(message *models.ChatMessage) error
 	IsMessageBelongToChat(messageId, userId, companionId uint) (bool, error)
+	IsAuthor(messageId, userId uint) (bool, error)
 	UpdateMessage(messageId uint, updatedMessage string) error
 	DeleteMessage(messageId uint) error
 }
@@ -91,6 +92,28 @@ func (storage ChatStorageImpl) IsMessageBelongToChat(messageId, userId, companio
 		"message_id":   messageId,
 		"user_id":      userId,
 		"companion_id": companionId,
+	}
+
+	stmt, err := storage.pdb.PrepareNamed(query)
+	if err != nil {
+		return false, err
+	}
+	defer stmt.Close()
+
+	if result, err := stmt.Exec(namedParams); err != nil {
+		return false, err
+	} else if rowsAffected, err := result.RowsAffected(); err != nil {
+		return false, err
+	} else {
+		return rowsAffected > 0, nil
+	}
+}
+
+func (storage ChatStorageImpl) IsAuthor(messageId, userId uint) (bool, error) {
+	query := `SELECT FROM chat_messages WHERE id = :message_id AND message_from = :user_id`
+	namedParams := map[string]any{
+		"message_id": messageId,
+		"user_id":    userId,
 	}
 
 	stmt, err := storage.pdb.PrepareNamed(query)

@@ -60,7 +60,7 @@ func main() {
 
 	message := chat.Group("/:message_id")
 	message.Use(chatMiddleware.CheckIfBelongsToChat())
-	message.Put("/", chatHandler.UpdateMessage)
+	message.Put("/", chatMiddleware.CheckIfAuthor(), chatHandler.UpdateMessage)
 	message.Delete("/", chatHandler.DeleteMessage)
 
 	ws := chat.Group("")
