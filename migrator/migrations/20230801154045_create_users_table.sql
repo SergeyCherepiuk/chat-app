@@ -9,7 +9,7 @@ create table users (
     last_name varchar(20) not null,
     username varchar(30) unique not null,
     password varchar(256) not null,
-    description varchar(100),
+    description varchar(100) not null,
     profile_picture bytea,
     created_at timestamp not null default current_timestamp
 );
