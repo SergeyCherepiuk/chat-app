@@ -4,13 +4,9 @@ SELECT 'up SQL query';
 -- +goose StatementEnd
 
 create table chat_messages (
-    id bigserial primary key,
     message_from bigint not null references users(id) on delete cascade,
-    message_to bigint not null references users(id) on delete cascade,
-    message text not null,
-    is_edited boolean not null,
-    created_at timestamp not null default current_timestamp
-);
+    message_to bigint not null references users(id) on delete cascade
+) inherits (abstract_message);
 
 -- +goose Down
 -- +goose StatementBegin
