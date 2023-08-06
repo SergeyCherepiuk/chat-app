@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func TestUnauthorizedGetMeRequest(t *testing.T) {
+func Test_Unauthorized_GetMeRequest(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "/me", nil)
 
 	response, _ := app.Test(request)
@@ -23,7 +23,7 @@ func TestUnauthorizedGetMeRequest(t *testing.T) {
 	}
 }
 
-func TestValidGetMeRequest(t *testing.T) {
+func Test_Valid_GetMeRequest(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "/me", nil)
 	request.AddCookie(&http.Cookie{
 		Name:     "session_id",

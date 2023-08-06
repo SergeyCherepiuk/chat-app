@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func TestInvalidLogoutRequest(t *testing.T) {
+func Test_Invalid_LogoutRequest(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPost, "/logout", nil)
 
 	response, _ := app.Test(request)
@@ -23,7 +23,7 @@ func TestInvalidLogoutRequest(t *testing.T) {
 	}
 }
 
-func TestValidLogoutRequest(t *testing.T) {
+func Test_Valid_LogoutRequest(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPost, "/logout", nil)
 	request.AddCookie(&http.Cookie{
 		Name:     "session_id",

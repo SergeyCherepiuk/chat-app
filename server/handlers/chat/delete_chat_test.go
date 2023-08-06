@@ -1,4 +1,4 @@
-package userhandler_test
+package chathandler_test
 
 import (
 	"net/http"
@@ -10,8 +10,8 @@ import (
 	"github.com/google/uuid"
 )
 
-func Test_Unauthorized_GetByUsernameRequest(t *testing.T) {
-	request := httptest.NewRequest(http.MethodGet, "/markwatson", nil)
+func Test_Unauthorized_DeleteChatRequest(t *testing.T) {
+	request := httptest.NewRequest(http.MethodDelete, "/chat/johndoe", nil)
 
 	response, _ := app.Test(request)
 	if response.StatusCode != fiber.StatusUnauthorized {
@@ -23,8 +23,8 @@ func Test_Unauthorized_GetByUsernameRequest(t *testing.T) {
 	}
 }
 
-func Test_UserNotFound_GetByUsernameRequest(t *testing.T) {
-	request := httptest.NewRequest(http.MethodGet, "/theodavis", nil)
+func Test_Invalid_DeleteChatRequest(t *testing.T) {
+	request := httptest.NewRequest(http.MethodDelete, "/chat/unknownusername", nil)
 	request.AddCookie(&http.Cookie{
 		Name:     "session_id",
 		Value:    uuid.NewString(),
@@ -33,17 +33,17 @@ func Test_UserNotFound_GetByUsernameRequest(t *testing.T) {
 	})
 
 	response, _ := app.Test(request)
-	if response.StatusCode != fiber.StatusInternalServerError {
+	if response.StatusCode != fiber.StatusBadRequest {
 		t.Errorf(
 			"expected status code: %v, actual status code: %v\n",
-			fiber.StatusInternalServerError,
+			fiber.StatusBadRequest,
 			response.StatusCode,
 		)
 	}
 }
 
-func Test_Valid_GetByUsernameRequest(t *testing.T) {
-	request := httptest.NewRequest(http.MethodGet, "/markwatson", nil)
+func Test_Valid_DeleteChatRequest(t *testing.T) {
+	request := httptest.NewRequest(http.MethodDelete, "/chat/markwatson", nil)
 	request.AddCookie(&http.Cookie{
 		Name:     "session_id",
 		Value:    uuid.NewString(),
@@ -55,7 +55,7 @@ func Test_Valid_GetByUsernameRequest(t *testing.T) {
 	if response.StatusCode != fiber.StatusOK {
 		t.Errorf(
 			"expected status code: %v, actual status code: %v\n",
-			fiber.StatusUnauthorized,
+			fiber.StatusOK,
 			response.StatusCode,
 		)
 	}

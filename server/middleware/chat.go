@@ -64,14 +64,9 @@ func (middleware ChatMiddleware) CheckIfBelongsToChat() fiber.Handler {
 		log.With(slog.Uint64("message_id", messageId))
 
 		isBelong, err := middleware.chatStorage.IsMessageBelongToChat(uint(messageId), userId, companionId)
-		if err != nil {
-			log.Error("failed to find out if message belongs to the chat", slog.String("err", err.Error()))
-			return err
-		}
-
-		if !isBelong {
-			log.Warn("user not belongs to the chat")
-			return c.SendStatus(fiber.StatusUnauthorized)
+		if err != nil || !isBelong {
+			log.Warn("message not belongs to the chat", slog.String("err", err.Error()))
+			return c.SendStatus(fiber.StatusBadRequest)
 		}
 
 		c.Locals("message_id", uint(messageId))

@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func TestUnauthorizedDeleteMeRequest(t *testing.T) {
+func Test_Unauthorized_DeleteMeRequest(t *testing.T) {
 	request := httptest.NewRequest(http.MethodDelete, "/me", nil)
 
 	response, _ := app.Test(request)
@@ -23,7 +23,7 @@ func TestUnauthorizedDeleteMeRequest(t *testing.T) {
 	}
 }
 
-func TestValidDeleteMeRequest(t *testing.T) {
+func Test_Valid_DeleteMeRequest(t *testing.T) {
 	request := httptest.NewRequest(http.MethodDelete, "/me", nil)
 	request.AddCookie(&http.Cookie{
 		Name:     "session_id",

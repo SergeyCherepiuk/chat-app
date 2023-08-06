@@ -9,7 +9,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func TestUnparsableLoginRequest(t *testing.T) {
+func Test_Unparsable_LoginRequest(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPost, "/login", nil)
 
 	response, _ := app.Test(request)
@@ -22,7 +22,7 @@ func TestUnparsableLoginRequest(t *testing.T) {
 	}
 }
 
-func TestValidLoginRequest(t *testing.T) {
+func Test_Valid_LoginRequest(t *testing.T) {
 	request := httptest.NewRequest(
 		http.MethodPost,
 		"/login",
