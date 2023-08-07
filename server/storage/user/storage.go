@@ -71,16 +71,16 @@ func (storage UserStorageImpl) Update(userId uint, updates map[string]any) error
 		"user_id": userId,
 	}
 
-	updatesPairs := []string{}
+	updatePairs := []string{}
 	for k, v := range updates {
 		switch v.(type) {
 		case string, rune, byte, []byte:
-			updatesPairs = append(updatesPairs, fmt.Sprintf("%s = '%s'", k, v))
+			updatePairs = append(updatePairs, fmt.Sprintf("%s = '%s'", k, v))
 		default:
-			updatesPairs = append(updatesPairs, fmt.Sprintf("%s = %s", k, v))
+			updatePairs = append(updatePairs, fmt.Sprintf("%s = %s", k, v))
 		}
 	}
-	query = append(query, strings.Join(updatesPairs, ", ")...)
+	query = append(query, strings.Join(updatePairs, ", ")...)
 	query = append(query, "WHERE id = :user_id"...)
 
 	stmt, err := storage.pdb.PrepareNamed(string(query))

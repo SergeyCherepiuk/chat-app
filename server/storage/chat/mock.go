@@ -22,7 +22,7 @@ func (storage ChatStorageMock) reset() {
 	}
 }
 
-func (storage ChatStorageMock) GetChatHistory(userId, companionId uint) ([]models.ChatMessage, error) {
+func (storage ChatStorageMock) GetHistory(userId, companionId uint) ([]models.ChatMessage, error) {
 	storage.reset()
 	history := []models.ChatMessage{}
 	for _, message := range messages {
@@ -33,7 +33,36 @@ func (storage ChatStorageMock) GetChatHistory(userId, companionId uint) ([]model
 	return history, nil
 }
 
-func (storage ChatStorageMock) DeleteChat(userId, companionId uint) error {
+func (storage ChatStorageMock) Create(message *models.ChatMessage) error {
+	storage.reset()
+	messages = append(messages, *message)
+	return nil
+}
+
+func (storage ChatStorageMock) Update(messageId uint, updatedMessage string) error {
+	storage.reset()
+	for _, message := range messages {
+		if message.ID == messageId {
+			message.Message = updatedMessage
+			message.IsEdited = true
+			return nil
+		}
+	}
+	return errors.New("message not found")
+}
+
+func (storage ChatStorageMock) Delete(messageId uint) error {
+	storage.reset()
+	for i, message := range messages {
+		if message.ID == messageId {
+			messages = append(messages[:i], messages[i+1:]...)
+			return nil
+		}
+	}
+	return errors.New("message not found")
+}
+
+func (storage ChatStorageMock) DeleteAll(userId, companionId uint) error {
 	storage.reset()
 	for i := 0; i < len(messages); i++ {
 		message := messages[i]
@@ -45,13 +74,7 @@ func (storage ChatStorageMock) DeleteChat(userId, companionId uint) error {
 	return nil
 }
 
-func (storage ChatStorageMock) CreateMessage(message *models.ChatMessage) error {
-	storage.reset()
-	messages = append(messages, *message)
-	return nil
-}
-
-func (storage ChatStorageMock) IsMessageBelongToChat(messageId, userId, companionId uint) (bool, error) {
+func (storage ChatStorageMock) IsBelongsToChat(messageId, userId, companionId uint) (bool, error) {
 	storage.reset()
 	for _, message := range messages {
 		if message.ID == messageId && ((message.From == userId && message.To == companionId) || (message.From == companionId && message.To == userId)) {
@@ -69,27 +92,4 @@ func (storage ChatStorageMock) IsAuthor(messageId, userId uint) (bool, error) {
 		}
 	}
 	return false, errors.New("message not found")
-}
-
-func (storage ChatStorageMock) UpdateMessage(messageId uint, updatedMessage string) error {
-	storage.reset()
-	for _, message := range messages {
-		if message.ID == messageId {
-			message.Message = updatedMessage
-			message.IsEdited = true
-			return nil
-		}
-	}
-	return errors.New("message not found")
-}
-
-func (storage ChatStorageMock) DeleteMessage(messageId uint) error {
-	storage.reset()
-	for i, message := range messages {
-		if message.ID == messageId {
-			messages = append(messages[:i], messages[i+1:]...)
-			return nil
-		}
-	}
-	return errors.New("message not found")
 }
