@@ -6,6 +6,7 @@ SELECT 'up SQL query';
 create table group_chats (
     id bigserial primary key,
     name varchar(40) not null,
+    creator_id bigint references users(id) on delete set null,
     created_at timestamp not null default current_timestamp
 );
 
