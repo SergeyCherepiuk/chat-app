@@ -10,7 +10,7 @@ import (
 )
 
 type pair struct {
-	first uint
+	first  uint
 	second uint
 }
 
@@ -44,7 +44,7 @@ func (handler ChatHandler) EnterChat(c *websocket.Conn) {
 		connections[key].Remove(c)
 	}()
 
-	messages, err := handler.chatStorage.GetChatHistory(userId, companionId)
+	messages, err := handler.chatStorage.GetHistory(userId, companionId)
 	if err != nil {
 		log.Error("failed to get chat history", slog.String("err", err.Error()))
 		return
@@ -88,7 +88,7 @@ func (handler ChatHandler) EnterChat(c *websocket.Conn) {
 			To:       companionId,
 			IsEdited: false,
 		}
-		if err := handler.chatStorage.CreateMessage(&message); err != nil {
+		if err := handler.chatStorage.Create(&message); err != nil {
 			log.Error(
 				"failed to store the message",
 				slog.String("err", err.Error()),
