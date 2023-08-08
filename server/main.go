@@ -3,12 +3,14 @@ package main
 import (
 	authhandler "github.com/SergeyCherepiuk/chat-app/handlers/auth"
 	chathandler "github.com/SergeyCherepiuk/chat-app/handlers/chat"
+	groupchathandler "github.com/SergeyCherepiuk/chat-app/handlers/group_chat"
 	userhandler "github.com/SergeyCherepiuk/chat-app/handlers/user"
 	"github.com/SergeyCherepiuk/chat-app/initializers"
 	"github.com/SergeyCherepiuk/chat-app/logger"
 	"github.com/SergeyCherepiuk/chat-app/middleware"
 	authstorage "github.com/SergeyCherepiuk/chat-app/storage/auth"
 	chatstorage "github.com/SergeyCherepiuk/chat-app/storage/chat"
+	groupchatstorage "github.com/SergeyCherepiuk/chat-app/storage/group_chat"
 	userstorage "github.com/SergeyCherepiuk/chat-app/storage/user"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
@@ -33,10 +35,12 @@ func main() {
 	sessionManager := authstorage.NewSessionManager(rdb)
 	authStorage := authstorage.New(pdb, sessionManager)
 	chatStorage := chatstorage.New(pdb)
+	groupChatStorage := groupchatstorage.New(pdb)
 	userStorage := userstorage.New(pdb, rdb)
 
 	authMiddleware := middleware.NewAuthMiddleware(authStorage)
 	chatMiddleware := middleware.NewChatMiddleware(userStorage, chatStorage)
+	groupChatMiddleware := middleware.NewGroupChatMiddleware(groupChatStorage)
 
 	authHandler := authhandler.New(authStorage)
 	auth := api.Group("/auth")
@@ -66,6 +70,14 @@ func main() {
 	ws := chat.Group("")
 	ws.Use(middleware.Upgrade)
 	ws.Get("/", websocket.New(chatHandler.EnterChat, websocket.Config{}))
+
+	groupChatHandler := groupchathandler.New(groupChatStorage)
+	groupChat := api.Group("/group-chat")
+	groupChat.Use(authMiddleware.CheckIfAuthenticated())
+	groupChat.Get("/:chat_id", groupChatHandler.GetChat)
+	groupChat.Post("/", groupChatHandler.Create)
+	groupChat.Put("/:chat_id", groupChatMiddleware.CheckIfAdmin(), groupChatHandler.Update)
+	groupChat.Delete("/:chat_id", groupChatMiddleware.CheckIfAdmin(), groupChatHandler.Delete)
 
 	for i := 0; i < 10; i++ {
 		go logger.HandleLogs()
