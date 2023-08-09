@@ -3,7 +3,7 @@ package groupchathandler
 import (
 	"strconv"
 
-	groupchatdomain "github.com/SergeyCherepiuk/chat-app/domain/groupchat"
+	groupchatdomain "github.com/SergeyCherepiuk/chat-app/domain/group_chat"
 	"github.com/SergeyCherepiuk/chat-app/logger"
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/exp/slog"
