@@ -9,4 +9,4 @@ docker-compose up --build
 
 ## Check out endpoints in Insomnia
 
-Import endpoints to Insomnia from `endpoints-insomnia-v4.json` file.
+Import endpoints to Insomnia from `endpoints-insomnia-v4.json` file in `server/api` folder.
