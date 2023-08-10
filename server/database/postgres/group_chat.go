@@ -87,8 +87,7 @@ func (service GroupChatService) Update(chatId uint, updates map[string]any) erro
 				"chat_id": chatId,
 			}
 
-			_, err := stmt.Exec(namedParams)
-			if err != nil {
+			if _, err := stmt.Exec(namedParams); err != nil {
 				tx.Rollback()
 				return err
 			}

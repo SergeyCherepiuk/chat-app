@@ -1,98 +1,85 @@
 package postgres
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/SergeyCherepiuk/chat-app/domain"
+	"github.com/SergeyCherepiuk/chat-app/utils"
+	"github.com/jmoiron/sqlx"
 )
 
-type postgresUserService struct{}
-
-func NewUserService() *postgresUserService {
-	return &postgresUserService{}
+type UserService struct {
+	getByIdStmt       *sqlx.NamedStmt
+	getByUsernameStmt *sqlx.NamedStmt
+	updateColumns     []string
+	updateStmt        map[string]*sqlx.NamedStmt
+	deleteStmt        *sqlx.NamedStmt
 }
 
-func (storage postgresUserService) GetById(userId uint) (domain.User, error) {
-	query := `SELECT * FROM users WHERE id = :user_id`
+func NewUserService() *UserService {
+	service := UserService{}
+	utils.MustPrepareNamed(db, &service.getByIdStmt, `SELECT * FROM users WHERE id = :user_id`)
+	utils.MustPrepareNamed(db, &service.getByUsernameStmt, `SELECT * FROM users WHERE username = :username`)
+	utils.MustPrepareNamedMap(db, service.updateColumns, service.updateStmt, `UPDATE users SET %s = :value WHERE id = :user_id`)
+	utils.MustPrepareNamed(db, &service.deleteStmt, `DELETE FROM users WHERE id = :user_id`)
+	return &service
+}
+
+func (service UserService) GetById(userId uint) (domain.User, error) {
 	namedParams := map[string]any{
 		"user_id": userId,
 	}
 
-	stmt, err := db.PrepareNamed(query)
-	if err != nil {
-		return domain.User{}, err
-	}
-	defer stmt.Close()
-
 	user := domain.User{}
-	if err := stmt.Get(&user, namedParams); err != nil {
+	if err := service.getByIdStmt.Get(&user, namedParams); err != nil {
 		return domain.User{}, err
 	}
 
 	return user, nil
 }
 
-func (storage postgresUserService) GetByUsername(username string) (domain.User, error) {
-	query := `SELECT * FROM users WHERE username = :username`
+func (service UserService) GetByUsername(username string) (domain.User, error) {
 	namedParams := map[string]any{
 		"username": username,
 	}
 
-	stmt, err := db.PrepareNamed(query)
-	if err != nil {
-		return domain.User{}, err
-	}
-	defer stmt.Close()
-
 	user := domain.User{}
-	if err := stmt.Get(&user, namedParams); err != nil {
+	if err := service.getByUsernameStmt.Get(&user, namedParams); err != nil {
 		return domain.User{}, err
 	}
 
 	return user, nil
 }
 
-func (storage postgresUserService) Update(userId uint, updates map[string]any) error {
-	query := []byte("UPDATE users SET ")
-	namedParams := map[string]any{
-		"user_id": userId,
+func (service UserService) Update(userId uint, updates map[string]any) error {
+	tx, err := db.Beginx()
+	if err != nil {
+		return err
 	}
 
-	updatePairs := []string{}
-	for k, v := range updates {
-		switch v.(type) {
-		case string, rune, byte, []byte:
-			updatePairs = append(updatePairs, fmt.Sprintf("%s = '%s'", k, v))
-		default:
-			updatePairs = append(updatePairs, fmt.Sprintf("%s = %s", k, v))
+	// TODO: Potentially n+1 problem
+	for _, column := range service.updateColumns {
+		if value, ok := updates[column]; ok {
+			stmt := tx.NamedStmt(service.updateStmt[column])
+			namedParams := map[string]any{
+				"value":   value,
+				"user_id": userId,
+			}
+
+			if _, err := stmt.Exec(namedParams); err != nil {
+				tx.Rollback()
+				return err
+			}
 		}
 	}
-	query = append(query, strings.Join(updatePairs, ", ")...)
-	query = append(query, "WHERE id = :user_id"...)
 
-	stmt, err := db.PrepareNamed(string(query))
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(namedParams)
-	return err
+	tx.Commit()
+	return nil
 }
 
-func (storage postgresUserService) Delete(userId uint) error {
-	query := `DELETE FROM users WHERE id = :user_id`
+func (service UserService) Delete(userId uint) error {
 	namedParams := map[string]any{
 		"user_id": userId,
 	}
 
-	stmt, err := db.PrepareNamed(query)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(namedParams)
+	_, err := service.deleteStmt.Exec(namedParams)
 	return err
 }

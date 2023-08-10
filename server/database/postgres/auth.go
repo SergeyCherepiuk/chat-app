@@ -2,16 +2,23 @@ package postgres
 
 import (
 	"github.com/SergeyCherepiuk/chat-app/domain"
+	"github.com/SergeyCherepiuk/chat-app/utils"
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService struct {
 	sessionManager domain.SessionManagerService
+	signUpStmt     *sqlx.NamedStmt
+	loginStmt      *sqlx.NamedStmt
 }
 
 func NewAuthService(sessionManager domain.SessionManagerService) *AuthService {
-	return &AuthService{sessionManager: sessionManager}
+	service := AuthService{sessionManager: sessionManager}
+	utils.MustPrepareNamed(db, &service.signUpStmt, `INSERT INTO users (first_name, last_name, username, password, description, profile_picture) VALUES (:first_name, :last_name, :username, :password, :description, :profile_picture) RETURNING id`)
+	utils.MustPrepareNamed(db, &service.loginStmt, `SELECT * FROM users WHERE username = :username`)
+	return &service
 }
 
 func (service AuthService) SignUp(user domain.User) (uuid.UUID, uint, error) {
@@ -20,7 +27,6 @@ func (service AuthService) SignUp(user domain.User) (uuid.UUID, uint, error) {
 		return uuid.UUID{}, 0, err
 	}
 
-	query := `INSERT INTO users (first_name, last_name, username, password, description, profile_picture) VALUES (:first_name, :last_name, :username, :password, :description, :profile_picture) RETURNING id`
 	namedParams := map[string]any{
 		"first_name":      user.FirstName,
 		"last_name":       user.LastName,
@@ -30,15 +36,8 @@ func (service AuthService) SignUp(user domain.User) (uuid.UUID, uint, error) {
 		"profile_picture": user.ProfilePicture,
 	}
 
-	stmt, err := tx.PrepareNamed(query)
-	if err != nil {
-		tx.Rollback()
-		return uuid.UUID{}, 0, err
-	}
-	defer stmt.Close()
-
 	var userId uint
-	if err := stmt.Get(&userId, namedParams); err != nil {
+	if err := service.signUpStmt.Get(&userId, namedParams); err != nil {
 		tx.Rollback()
 		return uuid.UUID{}, 0, err
 	}
@@ -54,19 +53,12 @@ func (service AuthService) SignUp(user domain.User) (uuid.UUID, uint, error) {
 }
 
 func (service AuthService) Login(username, password string) (uuid.UUID, uint, error) {
-	query := `SELECT * FROM users WHERE username = :username`
 	namedParams := map[string]any{
 		"username": username,
 	}
 
-	stmt, err := db.PrepareNamed(query)
-	if err != nil {
-		return uuid.UUID{}, 0, err
-	}
-	defer stmt.Close()
-
 	user := domain.User{}
-	if err := stmt.Get(&user, namedParams); err != nil {
+	if err := service.loginStmt.Get(&user, namedParams); err != nil {
 		return uuid.UUID{}, 0, err
 	}
 
