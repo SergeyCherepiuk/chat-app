@@ -10,15 +10,15 @@ type UserService struct {
 	getByIdStmt       *sqlx.NamedStmt
 	getByUsernameStmt *sqlx.NamedStmt
 	updateColumns     []string
-	updateStmt        map[string]*sqlx.NamedStmt
+	updateStmts       map[string]*sqlx.NamedStmt
 	deleteStmt        *sqlx.NamedStmt
 }
 
 func NewUserService() *UserService {
-	service := UserService{}
+	service := UserService{updateColumns: []string{"first_name", "last_name", "username", "description"}}
 	utils.MustPrepareNamed(db, &service.getByIdStmt, `SELECT * FROM users WHERE id = :user_id`)
 	utils.MustPrepareNamed(db, &service.getByUsernameStmt, `SELECT * FROM users WHERE username = :username`)
-	utils.MustPrepareNamedMap(db, service.updateColumns, service.updateStmt, `UPDATE users SET %s = :value WHERE id = :user_id`)
+	utils.MustPrepareNamedMap(db, service.updateColumns, service.updateStmts, `UPDATE users SET %s = :value WHERE id = :user_id`)
 	utils.MustPrepareNamed(db, &service.deleteStmt, `DELETE FROM users WHERE id = :user_id`)
 	return &service
 }
@@ -58,7 +58,7 @@ func (service UserService) Update(userId uint, updates map[string]any) error {
 	// TODO: Potentially n+1 problem
 	for _, column := range service.updateColumns {
 		if value, ok := updates[column]; ok {
-			stmt := tx.NamedStmt(service.updateStmt[column])
+			stmt := tx.NamedStmt(service.updateStmts[column])
 			namedParams := map[string]any{
 				"value":   value,
 				"user_id": userId,

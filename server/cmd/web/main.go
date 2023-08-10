@@ -3,8 +3,8 @@ package main
 import (
 	stdlog "log"
 
-	"github.com/SergeyCherepiuk/chat-app/database/postgres"
-	"github.com/SergeyCherepiuk/chat-app/database/redis"
+	"github.com/SergeyCherepiuk/chat-app/pkg/database/postgres"
+	"github.com/SergeyCherepiuk/chat-app/pkg/database/redis"
 	"github.com/SergeyCherepiuk/chat-app/pkg/http"
 	"github.com/SergeyCherepiuk/chat-app/pkg/log"
 	"github.com/joho/godotenv"
