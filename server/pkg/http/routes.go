@@ -20,7 +20,7 @@ func NewRouter(
 	api := app.Group("/api")
 
 	authMiddleware := middleware.NewAuthMiddleware(authService)
-	chatMiddleware := middleware.NewChatMiddleware(userService, directMessageService)
+	directMessageMiddleware := middleware.NewChatMiddleware(userService, directMessageService)
 	groupChatMiddleware := middleware.NewGroupChatMiddleware(groupChatService)
 
 	authHandler := handlers.NewAuthHandler(authService)
@@ -37,28 +37,41 @@ func NewRouter(
 	user.Put("/me", userHandler.UpdateMe)
 	user.Delete("/me", userHandler.DeleteMe)
 
-	chatHandler := handlers.NewDirectMessageHandler(directMessageService, userService)
+	directMessageHandler := handlers.NewDirectMessageHandler(directMessageService, userService)
 	chat := api.Group("/chat/:username")
 	chat.Use(authMiddleware.CheckIfAuthenticated())
-	chat.Use(chatMiddleware.CheckIfCompanionExists())
-	chat.Delete("/", chatHandler.DeleteChat)
+	chat.Use(directMessageMiddleware.CheckIfCompanionExists())
+	chat.Delete("/", directMessageHandler.DeleteChat)
 
-	message := chat.Group("/:message_id")
-	message.Use(chatMiddleware.CheckIfBelongsToChat())
-	message.Put("/", chatMiddleware.CheckIfAuthor(), chatHandler.UpdateMessage)
-	message.Delete("/", chatHandler.DeleteMessage)
+	directMessage := chat.Group("/:message_id")
+	directMessage.Use(directMessageMiddleware.CheckIfBelongsToChat())
+	directMessage.Put("/", directMessageMiddleware.CheckIfAuthor(), directMessageHandler.UpdateMessage)
+	directMessage.Delete("/", directMessageHandler.DeleteMessage)
 
-	ws := chat.Group("")
-	ws.Use(middleware.Upgrade)
-	ws.Get("/", websocket.New(chatHandler.EnterChat, websocket.Config{}))
+	wsChat := chat.Group("")
+	wsChat.Use(middleware.Upgrade)
+	wsChat.Get("/", websocket.New(directMessageHandler.EnterChat, websocket.Config{}))
 
 	groupChatHandler := handlers.NewGroupChatHandler(groupChatService)
 	groupChat := api.Group("/group-chat")
 	groupChat.Use(authMiddleware.CheckIfAuthenticated())
-	groupChat.Get("/:chat_id", groupChatHandler.GetChat)
-	groupChat.Post("/", groupChatHandler.Create)
-	groupChat.Put("/:chat_id", groupChatMiddleware.CheckIfAdmin(), groupChatHandler.Update)
-	groupChat.Delete("/:chat_id", groupChatMiddleware.CheckIfAdmin(), groupChatHandler.Delete)
+	groupChat.Post("/", groupChatHandler.CreateChat)
+
+	wsGroupChat := groupChat.Group("/enter/:chat_id")
+	wsGroupChat.Use(middleware.Upgrade)
+	wsGroupChat.Use(groupChatMiddleware.CheckIfGroupChatExists())
+	wsGroupChat.Get("/", websocket.New(groupChatHandler.EnterChat, websocket.Config{}))
+
+	groupChatWithId := groupChat.Group("/:chat_id")
+	groupChatWithId.Use(groupChatMiddleware.CheckIfGroupChatExists())
+	groupChatWithId.Get("/", groupChatHandler.GetChat)
+	groupChatWithId.Put("/", groupChatMiddleware.CheckIfAdmin(), groupChatHandler.UpdateChat)
+	groupChatWithId.Delete("/", groupChatMiddleware.CheckIfAdmin(), groupChatHandler.DeleteChat)
+
+	groupMessage := groupChatWithId.Group("/:message_id")
+	groupMessage.Use(groupChatMiddleware.CheckIfMessageBelongsToChat())
+	groupMessage.Put("/", groupChatMiddleware.CheckIfAuthorOfMessage(), groupChatHandler.UpdateMessage)
+	groupMessage.Delete("/", groupChatMiddleware.CheckIfAuthorOfMessage(), groupChatHandler.DeleteMessage)
 
 	return app
 }

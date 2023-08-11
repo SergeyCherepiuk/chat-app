@@ -45,19 +45,35 @@ func (service GroupChatService) GetHistory(chatId uint) ([]domain.GroupMessage, 
 	return history, nil
 }
 
-func (service GroupChatService) Create(chat *domain.GroupChat) error {
+func (service GroupChatService) CreateChat(chat *domain.GroupChat) error {
 	service.reset()
 	groupChats = append(groupChats, *chat)
 	return nil
 }
 
-func (service GroupChatService) Update(chatId uint, updates map[string]any) error {
+func (service GroupChatService) CreateMessage(message *domain.GroupMessage) error {
+	service.reset()
+	groupMessages = append(groupMessages, *message)
+	return nil
+}
+
+func (service GroupChatService) UpdateChat(chatId uint, updates map[string]any) error {
 	service.reset()
 	_, err := service.GetChat(chatId)
 	return err
 }
 
-func (service GroupChatService) Delete(chatId uint) error {
+func (service GroupChatService) UpdateMessage(messageId uint, updatedMessage string) error {
+	service.reset()
+	for _, message := range groupMessages {
+		if message.ID == messageId {
+			return nil
+		}
+	}
+	return errors.New("message not found")
+}
+
+func (service GroupChatService) DeleteChat(chatId uint) error {
 	service.reset()
 	for i, chat := range groupChats {
 		if chat.ID == chatId {
@@ -68,7 +84,18 @@ func (service GroupChatService) Delete(chatId uint) error {
 	return errors.New("chat not found")
 }
 
-func (service GroupChatService) IsAdmin(chatId, userId uint) (bool, error) {
+func (service GroupChatService) DeleteMessage(messageId uint) error {
+	service.reset()
+	for i, message := range groupMessages {
+		if message.ID == messageId {
+			groupMessages = append(groupMessages[:i], groupMessages[i+1:]...)
+			return nil
+		}
+	}
+	return errors.New("message not found")
+}
+
+func (service GroupChatService) IsAdminOfChat(chatId, userId uint) (bool, error) {
 	service.reset()
 	for _, chat := range groupChats {
 		if chat.ID == chatId {
@@ -76,4 +103,24 @@ func (service GroupChatService) IsAdmin(chatId, userId uint) (bool, error) {
 		}
 	}
 	return false, errors.New("chat not found")
+}
+
+func (service GroupChatService) IsMessageBelongsToChat(messageId, chatId uint) (bool, error) {
+	service.reset()
+	for _, message := range groupMessages {
+		if message.ID == messageId {
+			return message.ChatID == chatId, nil
+		}
+	}
+	return false, errors.New("message not found")
+}
+
+func (service GroupChatService) IsAuthorOfMessage(messageId, userId uint) (bool, error) {
+	service.reset()
+	for _, message := range groupMessages {
+		if message.ID == messageId {
+			return message.UserID == userId, nil
+		}
+	}
+	return false, errors.New("message not found")
 }

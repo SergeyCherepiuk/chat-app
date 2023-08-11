@@ -41,7 +41,6 @@ func (middleware AuthMiddleware) CheckIfAuthenticated() fiber.Handler {
 		}
 
 		c.Locals("user_id", userId)
-		log.Info("set user id to locals", slog.Uint64("user_id", uint64(userId)))
 		return c.Next()
 	}
 }

@@ -5,11 +5,11 @@ import (
 	"strings"
 )
 
-type CreateDirectMessageBody struct {
+type CreateMessageBody struct {
 	Message string `json:"message"`
 }
 
-func (body *CreateDirectMessageBody) Validate() error {
+func (body *CreateMessageBody) Validate() error {
 	body.Message = strings.TrimSpace(body.Message)
 
 	var err error
@@ -19,11 +19,11 @@ func (body *CreateDirectMessageBody) Validate() error {
 	return err
 }
 
-type UpdateDirectMessageRequestBody struct {
+type UpdateMessageRequestBody struct {
 	Message string `json:"message"`
 }
 
-func (body *UpdateDirectMessageRequestBody) Validate() error {
+func (body *UpdateMessageRequestBody) Validate() error {
 	body.Message = strings.TrimSpace(body.Message)
 
 	var err error

@@ -9,11 +9,11 @@ import (
 )
 
 func Test_Invalid_CreateDirectMessageBody(t *testing.T) {
-	body := validation.CreateDirectMessageBody{Message: "   "}
+	body := validation.CreateMessageBody{Message: "   "}
 
 	actualErr := body.Validate()
 	expectedErr := errors.New("message is empty")
-	expectedBody := validation.CreateDirectMessageBody{Message: ""}
+	expectedBody := validation.CreateMessageBody{Message: ""}
 
 	if !utils.AreErrorsEqual(actualErr, expectedErr) {
 		t.Errorf("expected: %v, actual: %v\n", expectedErr, actualErr)
@@ -24,11 +24,11 @@ func Test_Invalid_CreateDirectMessageBody(t *testing.T) {
 }
 
 func Test_Valid_CreateDirectMessageBody(t *testing.T) {
-	body := validation.CreateDirectMessageBody{Message: "Valid"}
+	body := validation.CreateMessageBody{Message: "Valid"}
 
 	actualErr := body.Validate()
 	var expectedErr error = nil
-	expectedBody := validation.CreateDirectMessageBody{Message: "Valid"}
+	expectedBody := validation.CreateMessageBody{Message: "Valid"}
 
 	if !utils.AreErrorsEqual(actualErr, expectedErr) {
 		t.Errorf("expected: %v, actual: %v\n", expectedErr, actualErr)
@@ -39,11 +39,11 @@ func Test_Valid_CreateDirectMessageBody(t *testing.T) {
 }
 
 func Test_Invalid_UpdateDirectMessageRequestBody(t *testing.T) {
-	body := validation.UpdateDirectMessageRequestBody{Message: "   "}
+	body := validation.UpdateMessageRequestBody{Message: "   "}
 
 	actualErr := body.Validate()
 	expectedErr := errors.New("message is empty")
-	expectedBody := validation.UpdateDirectMessageRequestBody{Message: ""}
+	expectedBody := validation.UpdateMessageRequestBody{Message: ""}
 
 	if !utils.AreErrorsEqual(actualErr, expectedErr) {
 		t.Errorf("expected: %v, actual: %v\n", expectedErr, actualErr)
@@ -54,11 +54,11 @@ func Test_Invalid_UpdateDirectMessageRequestBody(t *testing.T) {
 }
 
 func Test_Valid_UpdateDirectMessageRequestBody(t *testing.T) {
-	body := validation.UpdateDirectMessageRequestBody{Message: "Valid"}
+	body := validation.UpdateMessageRequestBody{Message: "Valid"}
 
 	actualErr := body.Validate()
 	var expectedErr error = nil
-	expectedBody := validation.UpdateDirectMessageRequestBody{Message: "Valid"}
+	expectedBody := validation.UpdateMessageRequestBody{Message: "Valid"}
 
 	if !utils.AreErrorsEqual(actualErr, expectedErr) {
 		t.Errorf("expected: %v, actual: %v\n", expectedErr, actualErr)

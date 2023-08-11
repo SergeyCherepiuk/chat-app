@@ -1,11 +1,11 @@
 package handlers
 
 import (
-	"strconv"
-
 	"github.com/SergeyCherepiuk/chat-app/domain"
 	"github.com/SergeyCherepiuk/chat-app/pkg/http/validation"
 	"github.com/SergeyCherepiuk/chat-app/pkg/log"
+	"github.com/emirpasic/gods/sets/hashset"
+	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/exp/slog"
 )
@@ -18,21 +18,105 @@ func NewGroupChatHandler(groupChatService domain.GroupChatService) *GroupChatHan
 	return &GroupChatHandler{groupChatService: groupChatService}
 }
 
+var groupChatConnections = make(map[uint]*hashset.Set)
+
+func (handler GroupChatHandler) EnterChat(c *websocket.Conn) {
+	log := log.Logger{}
+
+	userId := c.Locals("user_id").(uint)
+	log.With(slog.Uint64("user_id", uint64(userId)))
+
+	chatId := c.Locals("chat_id").(uint)
+	log.With(slog.Uint64("chat_id", uint64(chatId)))
+
+	if _, ok := groupChatConnections[chatId]; !ok {
+		groupChatConnections[chatId] = hashset.New()
+	}
+	groupChatConnections[chatId].Add(c)
+	log.Info("user has been connected to the chat")
+	defer func() {
+		groupChatConnections[chatId].Remove(c)
+		if groupChatConnections[chatId].Empty() {
+			delete(groupChatConnections, chatId)
+		}
+	}()
+
+	history, err := handler.groupChatService.GetHistory(chatId)
+	if err != nil {
+		log.Error("failed to get chat history", slog.String("err", err.Error()))
+		return
+	}
+
+	for _, message := range history {
+		if err := c.WriteJSON(message); err != nil {
+			log.Error(
+				"failed to sent the message to the user",
+				slog.String("err", err.Error()),
+				slog.Any("message", message),
+			)
+			return
+		}
+	}
+
+	for {
+		_, text, err := c.ReadMessage()
+		if websocket.IsCloseError(err, 1000, 1005) {
+			log.Info("user has been disconnected")
+			return
+		}
+		if err != nil {
+			slog.Error("failed to read message", slog.String("err", err.Error()))
+			return
+		}
+
+		body := validation.CreateMessageBody{Message: string(text)}
+		if err := body.Validate(); err != nil {
+			log.Error(
+				"body isn't valid",
+				slog.String("err", err.Error()),
+				slog.Any("body", body),
+			)
+			continue
+		}
+
+		message := domain.GroupMessage{
+			Message:  body.Message,
+			UserID:   userId,
+			ChatID:   chatId,
+			IsEdited: false,
+		}
+		if err := handler.groupChatService.CreateMessage(&message); err != nil {
+			log.Error(
+				"failed to store the message",
+				slog.String("err", err.Error()),
+				slog.Any("message", message),
+			)
+			return
+		}
+
+		for _, ws := range groupChatConnections[chatId].Values() {
+			if ws != c {
+				if err := ws.(*websocket.Conn).WriteJSON(message); err != nil {
+					log.Error(
+						"failed to send the message to other user",
+						slog.String("err", err.Error()),
+						slog.Any("message", message),
+					)
+					return
+				}
+			}
+		}
+		log.Info("user has sent the message", slog.Any("message", message))
+	}
+}
+
 func (handler GroupChatHandler) GetChat(c *fiber.Ctx) error {
 	log := log.Logger{}
 
 	userId := c.Locals("user_id").(uint)
 	log.With(slog.Uint64("user_id", uint64(userId)))
 
-	chatId, err := strconv.ParseUint(c.Params("chat_id"), 10, 64)
-	if err != nil {
-		log.Error(
-			"failed to parse group chat id",
-			slog.String("err", err.Error()),
-			slog.String("chat_id", c.Params("chat_id")),
-		)
-		return c.Status(fiber.StatusBadRequest).SendString(err.Error())
-	}
+	chatId := c.Locals("chat_id").(uint)
 	log.With(slog.Uint64("chat_id", uint64(chatId)))
 
 	chat, err := handler.groupChatService.GetChat(uint(chatId))
@@ -48,7 +132,7 @@ func (handler GroupChatHandler) GetChat(c *fiber.Ctx) error {
 	return c.JSON(responseBody)
 }
 
-func (handler GroupChatHandler) Create(c *fiber.Ctx) error {
+func (handler GroupChatHandler) CreateChat(c *fiber.Ctx) error {
 	log := log.Logger{}
 
 	userId := c.Locals("user_id").(uint)
@@ -69,7 +153,7 @@ func (handler GroupChatHandler) Create(c *fiber.Ctx) error {
 		Name:      body.Name,
 		CreatorID: userId,
 	}
-	if err := handler.groupChatService.Create(&chat); err != nil {
+	if err := handler.groupChatService.CreateChat(&chat); err != nil {
 		log.Error("failed to store the group chat", slog.String("err", err.Error()))
 	}
 
@@ -77,7 +161,7 @@ func (handler GroupChatHandler) Create(c *fiber.Ctx) error {
 	return nil
 }
 
-func (handler GroupChatHandler) Update(c *fiber.Ctx) error {
+func (handler GroupChatHandler) UpdateChat(c *fiber.Ctx) error {
 	log := log.Logger{}
 
 	userId := c.Locals("user_id").(uint)
@@ -95,7 +179,7 @@ func (handler GroupChatHandler) Update(c *fiber.Ctx) error {
 	updates := body.ToMap()
 	log.With(slog.Any("updates", updates))
 
-	if err := handler.groupChatService.Update(chatId, updates); err != nil {
+	if err := handler.groupChatService.UpdateChat(chatId, updates); err != nil {
 		log.Error("failed to update the group chat", slog.String("err", err.Error()))
 		return err
 	}
@@ -104,7 +188,40 @@ func (handler GroupChatHandler) Update(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusOK)
 }
 
-func (handler GroupChatHandler) Delete(c *fiber.Ctx) error {
+func (handler GroupChatHandler) UpdateMessage(c *fiber.Ctx) error {
+	log := log.Logger{}
+
+	userId := c.Locals("user_id").(uint)
+	log.With(slog.Uint64("user_id", uint64(userId)))
+
+	messageId := c.Locals("message_id").(uint)
+	log.With(slog.Uint64("message_id", uint64(messageId)))
+
+	body := validation.UpdateMessageRequestBody{}
+	if err := c.BodyParser(&body); err != nil {
+		log.Error("failed to parse request body", slog.String("err", err.Error()))
+		return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+	}
+
+	if err := body.Validate(); err != nil {
+		log.Error(
+			"invalid request body",
+			slog.String("err", err.Error()),
+			slog.Any("body", body),
+		)
+		return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+	}
+
+	if err := handler.groupChatService.UpdateMessage(messageId, body.Message); err != nil {
+		log.Error("failed to update the message", slog.String("err", err.Error()))
+		return err
+	}
+
+	log.Info("message has been updated")
+	return c.SendStatus(fiber.StatusOK)
+}
+
+func (handler GroupChatHandler) DeleteChat(c *fiber.Ctx) error {
 	log := log.Logger{}
 
 	userId := c.Locals("user_id").(uint)
@@ -113,11 +230,29 @@ func (handler GroupChatHandler) Delete(c *fiber.Ctx) error {
 	chatId := c.Locals("chat_id").(uint)
 	log.With(slog.Uint64("chat_id", uint64(chatId)))
 
-	if err := handler.groupChatService.Delete(chatId); err != nil {
+	if err := handler.groupChatService.DeleteChat(chatId); err != nil {
 		log.Error("failed to delete the group chat", slog.String("err", err.Error()))
 		return err
 	}
 
 	log.Info("group chat has been deleted")
+	return c.SendStatus(fiber.StatusOK)
+}
+
+func (handler GroupChatHandler) DeleteMessage(c *fiber.Ctx) error {
+	log := log.Logger{}
+
+	userId := c.Locals("user_id").(uint)
+	log.With(slog.Uint64("user_id", uint64(userId)))
+
+	messageId := c.Locals("message_id").(uint)
+	log.With(slog.Uint64("message_id", uint64(messageId)))
+
+	if err := handler.groupChatService.DeleteMessage(messageId); err != nil {
+		log.Error("failed to delete the message", slog.String("err", err.Error()))
+		return err
+	}
+
+	log.Info("message has been deleted")
 	return c.SendStatus(fiber.StatusOK)
 }

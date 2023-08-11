@@ -17,12 +17,9 @@ func NewGroupChatMiddleware(groupChatService domain.GroupChatService) *GroupChat
 	return &GroupChatMiddleware{groupChatService: groupChatService}
 }
 
-func (middleware GroupChatMiddleware) CheckIfAdmin() fiber.Handler {
+func (middleware GroupChatMiddleware) CheckIfGroupChatExists() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		log := log.Logger{}
-
-		userId := c.Locals("user_id").(uint)
-		log.With(slog.Uint64("user_id", uint64(userId)))
 
 		chatId, err := strconv.ParseUint(c.Params("chat_id"), 10, 64)
 		if err != nil {
@@ -31,10 +28,25 @@ func (middleware GroupChatMiddleware) CheckIfAdmin() fiber.Handler {
 				slog.String("err", err.Error()),
 				slog.String("chat_id", c.Params("chat_id")),
 			)
-			return c.SendStatus(fiber.StatusBadRequest)
+			return c.Status(fiber.StatusBadRequest).SendString(err.Error())
 		}
 
-		isAdmin, err := middleware.groupChatService.IsAdmin(uint(chatId), userId)
+		c.Locals("chat_id", uint(chatId))
+		return c.Next()
+	}
+}
+
+func (middleware GroupChatMiddleware) CheckIfAdmin() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		log := log.Logger{}
+
+		userId := c.Locals("user_id").(uint)
+		log.With(slog.Uint64("user_id", uint64(userId)))
+
+		chatId := c.Locals("chat_id").(uint)
+		log.With(slog.Uint64("chat_id", uint64(chatId)))
+
+		isAdmin, err := middleware.groupChatService.IsAdminOfChat(chatId, userId)
 		if err != nil {
 			log.Error("failed to find out if user is admin", slog.String("err", err.Error()))
 			return err
@@ -45,7 +57,59 @@ func (middleware GroupChatMiddleware) CheckIfAdmin() fiber.Handler {
 			return c.SendStatus(fiber.StatusUnauthorized)
 		}
 
-		c.Locals("chat_id", uint(chatId))
+		return c.Next()
+	}
+}
+
+func (middleware GroupChatMiddleware) CheckIfMessageBelongsToChat() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		log := log.Logger{}
+
+		chatId := c.Locals("chat_id").(uint)
+		log.With(slog.Uint64("chat_id", uint64(chatId)))
+
+		messageId, err := strconv.ParseUint(c.Params("message_id"), 10, 64)
+		if err != nil {
+			log.Error(
+				"failed to parse message id",
+				slog.String("err", err.Error()),
+				slog.Uint64("message_id", messageId),
+			)
+			return c.Status(fiber.StatusBadRequest).SendString(err.Error()) 
+		}
+		
+		belongs, err := middleware.groupChatService.IsMessageBelongsToChat(uint(messageId), chatId)
+		if err != nil || !belongs {
+			log.Warn("message not belongs to the chat", slog.String("err", err.Error()))
+			return c.SendStatus(fiber.StatusBadRequest)
+		}
+		
+		c.Locals("message_id", uint(messageId))
+		return c.Next()
+	}
+}
+
+func (middleware GroupChatMiddleware) CheckIfAuthorOfMessage() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		log := log.Logger{}
+
+		userId := c.Locals("user_id").(uint)
+		log.With(slog.Uint64("user_id", uint64(userId)))
+
+		messageId := c.Locals("message_id").(uint)
+		log.With(slog.Uint64("message_id", uint64(messageId)))
+
+		isAuthor, err := middleware.groupChatService.IsAuthorOfMessage(messageId, userId)
+		if err != nil {
+			log.Error("failed to find out if user is an author", slog.String("err", err.Error()))
+			return err
+		}
+
+		if !isAuthor {
+			log.Warn("user isn't an author of the message")
+			return c.SendStatus(fiber.StatusUnauthorized)
+		}
+
 		return c.Next()
 	}
 }

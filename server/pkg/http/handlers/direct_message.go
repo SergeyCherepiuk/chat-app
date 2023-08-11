@@ -38,7 +38,7 @@ func (pair pair) getKey() [2]uint {
 	return [2]uint{pair.first, pair.second}
 }
 
-var connections = make(map[[2]uint]*hashset.Set)
+var directMessageConnections = make(map[[2]uint]*hashset.Set)
 
 func (handler DirectMessageHandler) EnterChat(c *websocket.Conn) {
 	defer c.Close()
@@ -52,22 +52,25 @@ func (handler DirectMessageHandler) EnterChat(c *websocket.Conn) {
 	log.With(slog.Uint64("companion_id", uint64(companionId)))
 
 	key := pair{first: userId, second: companionId}.getKey()
-	if _, ok := connections[key]; !ok {
-		connections[key] = hashset.New()
+	if _, ok := directMessageConnections[key]; !ok {
+		directMessageConnections[key] = hashset.New()
 	}
-	connections[key].Add(c)
+	directMessageConnections[key].Add(c)
 	log.Info("user has been connected to the chat", slog.Any("key", key))
 	defer func() {
-		connections[key].Remove(c)
+		directMessageConnections[key].Remove(c)
+		if directMessageConnections[key].Empty() {
+			delete(directMessageConnections, key)
+		}
 	}()
 
-	messages, err := handler.directMessageService.GetHistory(userId, companionId)
+	history, err := handler.directMessageService.GetHistory(userId, companionId)
 	if err != nil {
 		log.Error("failed to get chat history", slog.String("err", err.Error()))
 		return
 	}
 
-	for _, message := range messages {
+	for _, message := range history {
 		if err := c.WriteJSON(message); err != nil {
 			log.Error(
 				"failed to sent the message to the user",
@@ -89,7 +92,7 @@ func (handler DirectMessageHandler) EnterChat(c *websocket.Conn) {
 			return
 		}
 
-		body := validation.CreateDirectMessageBody{Message: string(text)}
+		body := validation.CreateMessageBody{Message: string(text)}
 		if err := body.Validate(); err != nil {
 			log.Error(
 				"body isn't valid",
@@ -114,10 +117,14 @@ func (handler DirectMessageHandler) EnterChat(c *websocket.Conn) {
 			return
 		}
 
-		for _, ws := range connections[key].Values() {
+		for _, ws := range directMessageConnections[key].Values() {
 			if ws != c {
 				if err := ws.(*websocket.Conn).WriteJSON(message); err != nil {
-					log.Error("failed to send a message to the companion", slog.String("err", err.Error()))
+					log.Error(
+						"failed to send a message to the companion",
+						slog.String("err", err.Error()),
+						slog.Any("message", message),
+					)
 					return
 				}
 			}
@@ -132,7 +139,7 @@ func (handler DirectMessageHandler) UpdateMessage(c *fiber.Ctx) error {
 	messageId := c.Locals("message_id").(uint)
 	log.With(slog.Uint64("message_id", uint64(messageId)))
 
-	body := validation.UpdateDirectMessageRequestBody{}
+	body := validation.UpdateMessageRequestBody{}
 	if err := c.BodyParser(&body); err != nil {
 		log.Error("failed to parse request body", slog.String("err", err.Error()))
 		return err

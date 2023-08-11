@@ -15,7 +15,10 @@ type UserService struct {
 }
 
 func NewUserService() *UserService {
-	service := UserService{updateColumns: []string{"first_name", "last_name", "username", "description"}}
+	service := UserService{
+		updateColumns: []string{"first_name", "last_name", "username", "description"},
+		updateStmts: make(map[string]*sqlx.NamedStmt),
+	}
 	utils.MustPrepareNamed(db, &service.getByIdStmt, `SELECT * FROM users WHERE id = :user_id`)
 	utils.MustPrepareNamed(db, &service.getByUsernameStmt, `SELECT * FROM users WHERE username = :username`)
 	utils.MustPrepareNamedMap(db, service.updateColumns, service.updateStmts, `UPDATE users SET %s = :value WHERE id = :user_id`)
