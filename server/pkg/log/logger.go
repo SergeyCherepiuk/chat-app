@@ -11,6 +11,9 @@ var logs chan message
 
 func init() {
 	logs = make(chan message)
+	for i := 0; i < 10; i++ {
+		go handleLogs()
+	}
 }
 
 func newLogger() *slog.Logger {
@@ -22,7 +25,7 @@ func newLogger() *slog.Logger {
 	)
 }
 
-func HandleLogs() {
+func handleLogs() {
 	logger := newLogger()
 	for {
 		logMessage := <-logs

@@ -7,7 +7,6 @@ import (
 	"github.com/SergeyCherepiuk/chat-app/pkg/database/postgres"
 	"github.com/SergeyCherepiuk/chat-app/pkg/database/redis"
 	"github.com/SergeyCherepiuk/chat-app/pkg/http"
-	"github.com/SergeyCherepiuk/chat-app/pkg/log"
 	"github.com/joho/godotenv"
 )
 
@@ -26,16 +25,12 @@ func main() {
 		AuthService: postgres.NewAuthService(
 			redis.NewSessionManagerService(),
 		),
-		UserService: postgres.NewUserService(),
-		DirectMessageService: postgres.NewDirectMessageService(),
+		UserService:                    postgres.NewUserService(),
+		DirectMessageService:           postgres.NewDirectMessageService(),
 		DirectConnectionManagerService: connection.NewConnectionManager[[2]uint](),
-		GroupChatService: postgres.NewGroupChatService(),
-		GroupConnectionManagerService: connection.NewConnectionManager[uint](),
+		GroupChatService:               postgres.NewGroupChatService(),
+		GroupConnectionManagerService:  connection.NewConnectionManager[uint](),
 	}.Build()
-
-	for i := 0; i < 10; i++ {
-		go log.HandleLogs()
-	}
 
 	app.Listen(":8001")
 }
