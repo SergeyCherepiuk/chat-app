@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/SergeyCherepiuk/chat-app/domain"
+	"github.com/SergeyCherepiuk/chat-app/pkg/connection"
 	"github.com/SergeyCherepiuk/chat-app/pkg/http/validation"
 	"github.com/SergeyCherepiuk/chat-app/pkg/log"
 	"github.com/gofiber/contrib/websocket"
@@ -12,18 +13,17 @@ import (
 
 type DirectMessageHandler struct {
 	directMessageService     domain.DirectMessageService
-	connectionManagerService domain.ConnectionManagerService[[2]uint]
+	connectionManagerService *connection.ConnectionManagerService[[2]uint]
 	userService              domain.UserService
 }
 
 func NewDirectMessageHandler(
 	directMessageService domain.DirectMessageService,
-	connectionManagerService domain.ConnectionManagerService[[2]uint],
 	userService domain.UserService,
 ) *DirectMessageHandler {
 	return &DirectMessageHandler{
 		directMessageService:     directMessageService,
-		connectionManagerService: connectionManagerService,
+		connectionManagerService: connection.NewConnectionManager[[2]uint](),
 		userService:              userService,
 	}
 }

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/SergeyCherepiuk/chat-app/domain"
+	"github.com/SergeyCherepiuk/chat-app/pkg/connection"
 	"github.com/SergeyCherepiuk/chat-app/pkg/http/validation"
 	"github.com/SergeyCherepiuk/chat-app/pkg/log"
 	"github.com/gofiber/contrib/websocket"
@@ -11,16 +12,13 @@ import (
 
 type GroupChatHandler struct {
 	groupChatService         domain.GroupChatService
-	connectionManagerService domain.ConnectionManagerService[uint]
+	connectionManagerService *connection.ConnectionManagerService[uint]
 }
 
-func NewGroupChatHandler(
-	groupChatService domain.GroupChatService,
-	connectionManagerService domain.ConnectionManagerService[uint],
-) *GroupChatHandler {
+func NewGroupChatHandler(groupChatService domain.GroupChatService,) *GroupChatHandler {
 	return &GroupChatHandler{
 		groupChatService:         groupChatService,
-		connectionManagerService: connectionManagerService,
+		connectionManagerService: connection.NewConnectionManager[uint](),
 	}
 }
 

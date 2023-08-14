@@ -10,11 +10,9 @@ var app *fiber.App
 
 func init() {
 	app = http.Router{
-		AuthService:                    mocks.NewAuthService(),
-		UserService:                    mocks.NewUserService(),
-		DirectMessageService:           mocks.NewDirectMessageService(),
-		DirectConnectionManagerService: mocks.NewConnectionManagerService[[2]uint](),
-		GroupChatService:               mocks.NewGroupChatService(),
-		GroupConnectionManagerService:  mocks.NewConnectionManagerService[uint](),
+		AuthService:          mocks.NewAuthService(),
+		UserService:          mocks.NewUserService(),
+		DirectMessageService: mocks.NewDirectMessageService(),
+		GroupChatService:     mocks.NewGroupChatService(),
 	}.Build()
 }

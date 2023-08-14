@@ -3,7 +3,6 @@ package main
 import (
 	stdlog "log"
 
-	"github.com/SergeyCherepiuk/chat-app/pkg/connection"
 	"github.com/SergeyCherepiuk/chat-app/pkg/database/postgres"
 	"github.com/SergeyCherepiuk/chat-app/pkg/database/redis"
 	"github.com/SergeyCherepiuk/chat-app/pkg/http"
@@ -22,14 +21,10 @@ func init() {
 
 func main() {
 	app := http.Router{
-		AuthService: postgres.NewAuthService(
-			redis.NewSessionManagerService(),
-		),
-		UserService:                    postgres.NewUserService(),
-		DirectMessageService:           postgres.NewDirectMessageService(),
-		DirectConnectionManagerService: connection.NewConnectionManager[[2]uint](),
-		GroupChatService:               postgres.NewGroupChatService(),
-		GroupConnectionManagerService:  connection.NewConnectionManager[uint](),
+		AuthService:          postgres.NewAuthService(redis.NewSessionManagerService()),
+		UserService:          postgres.NewUserService(),
+		DirectMessageService: postgres.NewDirectMessageService(),
+		GroupChatService:     postgres.NewGroupChatService(),
 	}.Build()
 
 	app.Listen(":8001")

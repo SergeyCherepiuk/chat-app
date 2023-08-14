@@ -9,12 +9,10 @@ import (
 )
 
 type Router struct {
-	AuthService                    domain.AuthService
-	UserService                    domain.UserService
-	DirectMessageService           domain.DirectMessageService
-	DirectConnectionManagerService domain.ConnectionManagerService[[2]uint]
-	GroupChatService               domain.GroupChatService
-	GroupConnectionManagerService  domain.ConnectionManagerService[uint]
+	AuthService          domain.AuthService
+	UserService          domain.UserService
+	DirectMessageService domain.DirectMessageService
+	GroupChatService     domain.GroupChatService
 }
 
 func (router Router) Build() *fiber.App {
@@ -45,7 +43,6 @@ func (router Router) Build() *fiber.App {
 
 	directMessageHandler := handlers.NewDirectMessageHandler(
 		router.DirectMessageService,
-		router.DirectConnectionManagerService,
 		router.UserService,
 	)
 	chat := api.Group("/chat/:username")
@@ -62,10 +59,7 @@ func (router Router) Build() *fiber.App {
 	wsChat.Use(middleware.Upgrade)
 	wsChat.Get("/", websocket.New(directMessageHandler.EnterChat, websocket.Config{}))
 
-	groupChatHandler := handlers.NewGroupChatHandler(
-		router.GroupChatService,
-		router.GroupConnectionManagerService,
-	)
+	groupChatHandler := handlers.NewGroupChatHandler(router.GroupChatService)
 	groupChat := api.Group("/group-chat")
 	groupChat.Use(authMiddleware.CheckIfAuthenticated())
 	groupChat.Post("/", groupChatHandler.CreateChat)
