@@ -3,6 +3,7 @@ package main
 import (
 	stdlog "log"
 
+	"github.com/SergeyCherepiuk/chat-app/pkg/connection"
 	"github.com/SergeyCherepiuk/chat-app/pkg/database/postgres"
 	"github.com/SergeyCherepiuk/chat-app/pkg/database/redis"
 	"github.com/SergeyCherepiuk/chat-app/pkg/http"
@@ -21,15 +22,16 @@ func init() {
 }
 
 func main() {
-	sessionManagerService := redis.NewSessionManagerService()
-
-	app := http.NewRouter(
-		sessionManagerService,
-		postgres.NewAuthService(sessionManagerService),
-		postgres.NewDirectMessageService(),
-		postgres.NewGroupChatService(),
-		postgres.NewUserService(),
-	)
+	app := http.Router{
+		AuthService: postgres.NewAuthService(
+			redis.NewSessionManagerService(),
+		),
+		UserService: postgres.NewUserService(),
+		DirectMessageService: postgres.NewDirectMessageService(),
+		DirectConnectionManagerService: connection.NewConnectionManager[[2]uint](),
+		GroupChatService: postgres.NewGroupChatService(),
+		GroupConnectionManagerService: connection.NewConnectionManager[uint](),
+	}.Build()
 
 	for i := 0; i < 10; i++ {
 		go log.HandleLogs()

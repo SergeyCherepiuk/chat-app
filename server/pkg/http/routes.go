@@ -2,38 +2,40 @@ package http
 
 import (
 	"github.com/SergeyCherepiuk/chat-app/domain"
-	"github.com/SergeyCherepiuk/chat-app/pkg/connection"
 	"github.com/SergeyCherepiuk/chat-app/pkg/http/handlers"
 	"github.com/SergeyCherepiuk/chat-app/pkg/http/middleware"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 )
 
-func NewRouter(
-	sessionManagerService domain.SessionManagerService,
-	authService domain.AuthService,
-	directMessageService domain.DirectMessageService,
-	groupChatService domain.GroupChatService,
-	userService domain.UserService,
-) *fiber.App {
+type Router struct {
+	AuthService                    domain.AuthService
+	UserService                    domain.UserService
+	DirectMessageService           domain.DirectMessageService
+	DirectConnectionManagerService domain.ConnectionManagerService[[2]uint]
+	GroupChatService               domain.GroupChatService
+	GroupConnectionManagerService  domain.ConnectionManagerService[uint]
+}
+
+func (router Router) Build() *fiber.App {
 	app := fiber.New()
 
 	api := app.Group("/api")
 
-	authMiddleware := middleware.NewAuthMiddleware(authService)
-	directMessageMiddleware := middleware.NewChatMiddleware(userService, directMessageService)
-	groupChatMiddleware := middleware.NewGroupChatMiddleware(groupChatService)
+	authMiddleware := middleware.NewAuthMiddleware(router.AuthService)
+	directMessageMiddleware := middleware.NewChatMiddleware(
+		router.UserService,
+		router.DirectMessageService,
+	)
+	groupChatMiddleware := middleware.NewGroupChatMiddleware(router.GroupChatService)
 
-	directConnectionManagerService := connection.NewConnectionManager[[2]uint]()
-	groupConnectionManagerService := connection.NewConnectionManager[uint]()
-
-	authHandler := handlers.NewAuthHandler(authService)
+	authHandler := handlers.NewAuthHandler(router.AuthService)
 	auth := api.Group("/auth")
 	auth.Post("/signup", authHandler.SignUp)
 	auth.Post("/login", authHandler.Login)
 	auth.Post("/logout", authHandler.Logout)
 
-	userHandler := handlers.NewUserHandler(userService)
+	userHandler := handlers.NewUserHandler(router.UserService)
 	user := api.Group("/user")
 	user.Use(authMiddleware.CheckIfAuthenticated())
 	user.Get("/me", userHandler.GetMe)
@@ -42,9 +44,9 @@ func NewRouter(
 	user.Delete("/me", userHandler.DeleteMe)
 
 	directMessageHandler := handlers.NewDirectMessageHandler(
-		directMessageService,
-		directConnectionManagerService,
-		userService,
+		router.DirectMessageService,
+		router.DirectConnectionManagerService,
+		router.UserService,
 	)
 	chat := api.Group("/chat/:username")
 	chat.Use(authMiddleware.CheckIfAuthenticated())
@@ -60,7 +62,10 @@ func NewRouter(
 	wsChat.Use(middleware.Upgrade)
 	wsChat.Get("/", websocket.New(directMessageHandler.EnterChat, websocket.Config{}))
 
-	groupChatHandler := handlers.NewGroupChatHandler(groupChatService, groupConnectionManagerService)
+	groupChatHandler := handlers.NewGroupChatHandler(
+		router.GroupChatService,
+		router.GroupConnectionManagerService,
+	)
 	groupChat := api.Group("/group-chat")
 	groupChat.Use(authMiddleware.CheckIfAuthenticated())
 	groupChat.Post("/", groupChatHandler.CreateChat)
