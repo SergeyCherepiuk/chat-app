@@ -4,21 +4,25 @@ import (
 	"github.com/SergeyCherepiuk/chat-app/domain"
 	"github.com/SergeyCherepiuk/chat-app/pkg/http/validation"
 	"github.com/SergeyCherepiuk/chat-app/pkg/log"
-	"github.com/emirpasic/gods/sets/hashset"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/exp/slog"
 )
 
 type GroupChatHandler struct {
-	groupChatService domain.GroupChatService
+	groupChatService         domain.GroupChatService
+	connectionManagerService domain.ConnectionManagerService[uint]
 }
 
-func NewGroupChatHandler(groupChatService domain.GroupChatService) *GroupChatHandler {
-	return &GroupChatHandler{groupChatService: groupChatService}
+func NewGroupChatHandler(
+	groupChatService domain.GroupChatService,
+	connectionManagerService domain.ConnectionManagerService[uint],
+) *GroupChatHandler {
+	return &GroupChatHandler{
+		groupChatService:         groupChatService,
+		connectionManagerService: connectionManagerService,
+	}
 }
-
-var groupChatConnections = make(map[uint]*hashset.Set)
 
 func (handler GroupChatHandler) EnterChat(c *websocket.Conn) {
 	log := log.Logger{}
@@ -29,16 +33,10 @@ func (handler GroupChatHandler) EnterChat(c *websocket.Conn) {
 	chatId := c.Locals("chat_id").(uint)
 	log.With(slog.Uint64("chat_id", uint64(chatId)))
 
-	if _, ok := groupChatConnections[chatId]; !ok {
-		groupChatConnections[chatId] = hashset.New()
-	}
-	groupChatConnections[chatId].Add(c)
+	go handler.connectionManagerService.Connect(chatId, c)
 	log.Info("user has been connected to the chat")
 	defer func() {
-		groupChatConnections[chatId].Remove(c)
-		if groupChatConnections[chatId].Empty() {
-			delete(groupChatConnections, chatId)
-		}
+		go handler.connectionManagerService.Disconnect(chatId, c)
 	}()
 
 	history, err := handler.groupChatService.GetHistory(chatId)
@@ -94,7 +92,7 @@ func (handler GroupChatHandler) EnterChat(c *websocket.Conn) {
 			return
 		}
 
-		for _, ws := range groupChatConnections[chatId].Values() {
+		for _, ws := range handler.connectionManagerService.GetConnections(chatId).Values() {
 			if ws != c {
 				if err := ws.(*websocket.Conn).WriteJSON(message); err != nil {
 					log.Error(

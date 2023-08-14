@@ -4,7 +4,6 @@ import (
 	"github.com/SergeyCherepiuk/chat-app/domain"
 	"github.com/SergeyCherepiuk/chat-app/pkg/http/validation"
 	"github.com/SergeyCherepiuk/chat-app/pkg/log"
-	"github.com/emirpasic/gods/sets/hashset"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 
@@ -12,33 +11,34 @@ import (
 )
 
 type DirectMessageHandler struct {
-	directMessageService domain.DirectMessageService
-	userService          domain.UserService
+	directMessageService     domain.DirectMessageService
+	connectionManagerService domain.ConnectionManagerService[[2]uint]
+	userService              domain.UserService
 }
 
 func NewDirectMessageHandler(
 	directMessageService domain.DirectMessageService,
+	connectionManagerService domain.ConnectionManagerService[[2]uint],
 	userService domain.UserService,
 ) *DirectMessageHandler {
 	return &DirectMessageHandler{
-		directMessageService: directMessageService,
-		userService:          userService,
+		directMessageService:     directMessageService,
+		connectionManagerService: connectionManagerService,
+		userService:              userService,
 	}
 }
 
-type pair struct {
-	first  uint
-	second uint
+type Pair struct {
+	First  uint
+	Second uint
 }
 
-func (pair pair) getKey() [2]uint {
-	if pair.first > pair.second {
-		return [2]uint{pair.second, pair.first}
+func (pair Pair) GetKey() [2]uint {
+	if pair.First > pair.Second {
+		return [2]uint{pair.Second, pair.First}
 	}
-	return [2]uint{pair.first, pair.second}
+	return [2]uint{pair.First, pair.Second}
 }
-
-var directMessageConnections = make(map[[2]uint]*hashset.Set)
 
 func (handler DirectMessageHandler) EnterChat(c *websocket.Conn) {
 	defer c.Close()
@@ -51,17 +51,11 @@ func (handler DirectMessageHandler) EnterChat(c *websocket.Conn) {
 	companionId := c.Locals("companion_id").(uint)
 	log.With(slog.Uint64("companion_id", uint64(companionId)))
 
-	key := pair{first: userId, second: companionId}.getKey()
-	if _, ok := directMessageConnections[key]; !ok {
-		directMessageConnections[key] = hashset.New()
-	}
-	directMessageConnections[key].Add(c)
+	key := Pair{First: userId, Second: companionId}.GetKey()
+	go handler.connectionManagerService.Connect(key, c)
 	log.Info("user has been connected to the chat", slog.Any("key", key))
 	defer func() {
-		directMessageConnections[key].Remove(c)
-		if directMessageConnections[key].Empty() {
-			delete(directMessageConnections, key)
-		}
+		go handler.connectionManagerService.Disconnect(key, c)
 	}()
 
 	history, err := handler.directMessageService.GetHistory(userId, companionId)
@@ -117,7 +111,7 @@ func (handler DirectMessageHandler) EnterChat(c *websocket.Conn) {
 			return
 		}
 
-		for _, ws := range directMessageConnections[key].Values() {
+		for _, ws := range handler.connectionManagerService.GetConnections(key).Values() {
 			if ws != c {
 				if err := ws.(*websocket.Conn).WriteJSON(message); err != nil {
 					log.Error(
