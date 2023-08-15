@@ -5,6 +5,7 @@ import (
 	"github.com/SergeyCherepiuk/chat-app/pkg/connection"
 	"github.com/SergeyCherepiuk/chat-app/pkg/http/validation"
 	"github.com/SergeyCherepiuk/chat-app/pkg/log"
+	"github.com/SergeyCherepiuk/chat-app/pkg/messaging"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 
@@ -14,6 +15,7 @@ import (
 type DirectMessageHandler struct {
 	directMessageService     domain.DirectMessageService
 	connectionManagerService *connection.ConnectionManagerService[[2]uint]
+	messageSenderService     *messaging.MessageSenderService[domain.DirectMessage]
 	userService              domain.UserService
 }
 
@@ -24,6 +26,7 @@ func NewDirectMessageHandler(
 	return &DirectMessageHandler{
 		directMessageService:     directMessageService,
 		connectionManagerService: connection.NewConnectionManager[[2]uint](),
+		messageSenderService:     messaging.NewMessageSenderService[domain.DirectMessage](),
 		userService:              userService,
 	}
 }
@@ -63,17 +66,7 @@ func (handler DirectMessageHandler) EnterChat(c *websocket.Conn) {
 		log.Error("failed to get chat history", slog.String("err", err.Error()))
 		return
 	}
-
-	for _, message := range history {
-		if err := c.WriteJSON(message); err != nil {
-			log.Error(
-				"failed to sent the message to the user",
-				slog.String("err", err.Error()),
-				slog.Any("message", message),
-			)
-			return
-		}
-	}
+	go handler.messageSenderService.Send(history, c)
 
 	for {
 		_, text, err := c.ReadMessage()
@@ -111,18 +104,10 @@ func (handler DirectMessageHandler) EnterChat(c *websocket.Conn) {
 			return
 		}
 
-		for _, ws := range handler.connectionManagerService.GetConnections(key).Values() {
-			if ws != c {
-				if err := ws.(*websocket.Conn).WriteJSON(message); err != nil {
-					log.Error(
-						"failed to send a message to the companion",
-						slog.String("err", err.Error()),
-						slog.Any("message", message),
-					)
-					return
-				}
-			}
-		}
+		go handler.messageSenderService.Send(
+			[]domain.DirectMessage{message},
+			handler.connectionManagerService.GetConnections(key)...,	
+		)
 		log.Info("user has sent the message", slog.Any("message", message))
 	}
 }

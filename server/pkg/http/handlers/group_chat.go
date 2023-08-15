@@ -5,6 +5,7 @@ import (
 	"github.com/SergeyCherepiuk/chat-app/pkg/connection"
 	"github.com/SergeyCherepiuk/chat-app/pkg/http/validation"
 	"github.com/SergeyCherepiuk/chat-app/pkg/log"
+	"github.com/SergeyCherepiuk/chat-app/pkg/messaging"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/exp/slog"
@@ -13,12 +14,14 @@ import (
 type GroupChatHandler struct {
 	groupChatService         domain.GroupChatService
 	connectionManagerService *connection.ConnectionManagerService[uint]
+	messageSenderService     *messaging.MessageSenderService[domain.GroupMessage]
 }
 
-func NewGroupChatHandler(groupChatService domain.GroupChatService,) *GroupChatHandler {
+func NewGroupChatHandler(groupChatService domain.GroupChatService) *GroupChatHandler {
 	return &GroupChatHandler{
 		groupChatService:         groupChatService,
 		connectionManagerService: connection.NewConnectionManager[uint](),
+		messageSenderService:     &messaging.MessageSenderService[domain.GroupMessage]{},
 	}
 }
 
@@ -42,17 +45,7 @@ func (handler GroupChatHandler) EnterChat(c *websocket.Conn) {
 		log.Error("failed to get chat history", slog.String("err", err.Error()))
 		return
 	}
-
-	for _, message := range history {
-		if err := c.WriteJSON(message); err != nil {
-			log.Error(
-				"failed to sent the message to the user",
-				slog.String("err", err.Error()),
-				slog.Any("message", message),
-			)
-			return
-		}
-	}
+	go handler.messageSenderService.Send(history, c)
 
 	for {
 		_, text, err := c.ReadMessage()
@@ -90,18 +83,10 @@ func (handler GroupChatHandler) EnterChat(c *websocket.Conn) {
 			return
 		}
 
-		for _, ws := range handler.connectionManagerService.GetConnections(chatId).Values() {
-			if ws != c {
-				if err := ws.(*websocket.Conn).WriteJSON(message); err != nil {
-					log.Error(
-						"failed to send the message to other user",
-						slog.String("err", err.Error()),
-						slog.Any("message", message),
-					)
-					return
-				}
-			}
-		}
+		go handler.messageSenderService.Send(
+			[]domain.GroupMessage{message},
+			handler.connectionManagerService.GetConnections(chatId)...,
+		)
 		log.Info("user has sent the message", slog.Any("message", message))
 	}
 }

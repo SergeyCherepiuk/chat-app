@@ -27,6 +27,10 @@ func (manager *ConnectionManagerService[T]) Disconnect(key T, conn *websocket.Co
 	}
 }
 
-func (manager *ConnectionManagerService[T]) GetConnections(key T) *hashset.Set {
-	return manager.Connections[key]
+func (manager *ConnectionManagerService[T]) GetConnections(key T) []*websocket.Conn {
+	connections := make([]*websocket.Conn, manager.Connections[key].Size())
+	for i, conn := range manager.Connections[key].Values() {
+		connections[i] = conn.(*websocket.Conn)
+	}
+	return connections
 }
