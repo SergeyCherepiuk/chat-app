@@ -1,11 +1,14 @@
 package connection
 
 import (
+	"sync"
+
 	"github.com/emirpasic/gods/sets/hashset"
 	"github.com/gofiber/contrib/websocket"
 )
 
 type ConnectionManagerService[T comparable] struct {
+	mu          sync.Mutex
 	Connections map[T]*hashset.Set
 }
 
@@ -14,6 +17,9 @@ func NewConnectionManager[T comparable]() *ConnectionManagerService[T] {
 }
 
 func (manager *ConnectionManagerService[T]) Connect(key T, conn *websocket.Conn) {
+	manager.mu.Lock()
+	defer manager.mu.Unlock()
+
 	if _, ok := manager.Connections[key]; !ok {
 		manager.Connections[key] = hashset.New()
 	}
@@ -21,6 +27,9 @@ func (manager *ConnectionManagerService[T]) Connect(key T, conn *websocket.Conn)
 }
 
 func (manager *ConnectionManagerService[T]) Disconnect(key T, conn *websocket.Conn) {
+	manager.mu.Lock()
+	defer manager.mu.Unlock()
+
 	manager.Connections[key].Remove(conn)
 	if manager.Connections[key].Empty() {
 		delete(manager.Connections, key)
