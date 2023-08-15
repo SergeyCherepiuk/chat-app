@@ -30,9 +30,11 @@ func (manager *ConnectionManagerService[T]) Disconnect(key T, conn *websocket.Co
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
 
-	manager.Connections[key].Remove(conn)
-	if manager.Connections[key].Empty() {
-		delete(manager.Connections, key)
+	if _, ok := manager.Connections[key]; ok {
+		manager.Connections[key].Remove(conn)
+		if manager.Connections[key].Empty() {
+			delete(manager.Connections, key)
+		}
 	}
 }
 
