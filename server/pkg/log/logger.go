@@ -10,7 +10,7 @@ import (
 var logs chan message
 
 func init() {
-	logs = make(chan message)
+	logs = make(chan message, 10)
 	for i := 0; i < 10; i++ {
 		go handleLogs()
 	}
