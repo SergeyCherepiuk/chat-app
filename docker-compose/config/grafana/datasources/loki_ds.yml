@@ -1,0 +1,5 @@
+datasources:
+- name: Loki
+  url: http://loki:3100
+  type: loki
+  isDefault: true

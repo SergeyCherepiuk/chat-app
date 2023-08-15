@@ -93,6 +93,8 @@ services:
     restart: unless-stopped
     ports:
       - '3000:3000'
+    volumes:
+      - './config/grafana/datasources:/etc/grafana/provisioning/datasources'
     depends_on:
       - loki
     networks:
