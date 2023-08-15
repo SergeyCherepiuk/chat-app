@@ -5,7 +5,7 @@ import (
 
 	"github.com/SergeyCherepiuk/chat-app/domain"
 	"github.com/SergeyCherepiuk/chat-app/pkg/http/validation"
-	"github.com/SergeyCherepiuk/chat-app/pkg/log"
+	"github.com/SergeyCherepiuk/chat-app/pkg/logger"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -21,7 +21,7 @@ func NewAuthHandler(authService domain.AuthService) *AuthHandler {
 }
 
 func (handler AuthHandler) SignUp(c *fiber.Ctx) error {
-	log := log.Logger{}
+	log := logger.Logger{}
 
 	body := validation.SignUpRequestBody{}
 	if err := c.BodyParser(&body); err != nil {
@@ -81,7 +81,7 @@ func (handler AuthHandler) SignUp(c *fiber.Ctx) error {
 }
 
 func (handler AuthHandler) Login(c *fiber.Ctx) error {
-	log := log.Logger{}
+	log := logger.Logger{}
 
 	body := validation.LoginRequestBody{}
 	if err := c.BodyParser(&body); err != nil {
@@ -110,7 +110,7 @@ func (handler AuthHandler) Login(c *fiber.Ctx) error {
 }
 
 func (handler AuthHandler) Logout(c *fiber.Ctx) error {
-	log := log.Logger{}
+	log := logger.Logger{}
 
 	sessionId, err := uuid.Parse(c.Cookies("session_id", ""))
 	if err != nil {

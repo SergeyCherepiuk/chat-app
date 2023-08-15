@@ -4,7 +4,7 @@ import (
 	"strconv"
 
 	"github.com/SergeyCherepiuk/chat-app/domain"
-	"github.com/SergeyCherepiuk/chat-app/pkg/log"
+	"github.com/SergeyCherepiuk/chat-app/pkg/logger"
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/exp/slog"
 )
@@ -19,7 +19,7 @@ func NewGroupChatMiddleware(groupChatService domain.GroupChatService) *GroupChat
 
 func (middleware GroupChatMiddleware) CheckIfGroupChatExists() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		log := log.Logger{}
+		log := logger.Logger{}
 
 		chatId, err := strconv.ParseUint(c.Params("chat_id"), 10, 64)
 		if err != nil {
@@ -38,7 +38,7 @@ func (middleware GroupChatMiddleware) CheckIfGroupChatExists() fiber.Handler {
 
 func (middleware GroupChatMiddleware) CheckIfAdmin() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		log := log.Logger{}
+		log := logger.Logger{}
 
 		userId := c.Locals("user_id").(uint)
 		log.With(slog.Uint64("user_id", uint64(userId)))
@@ -63,7 +63,7 @@ func (middleware GroupChatMiddleware) CheckIfAdmin() fiber.Handler {
 
 func (middleware GroupChatMiddleware) CheckIfMessageBelongsToChat() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		log := log.Logger{}
+		log := logger.Logger{}
 
 		chatId := c.Locals("chat_id").(uint)
 		log.With(slog.Uint64("chat_id", uint64(chatId)))
@@ -91,7 +91,7 @@ func (middleware GroupChatMiddleware) CheckIfMessageBelongsToChat() fiber.Handle
 
 func (middleware GroupChatMiddleware) CheckIfAuthorOfMessage() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		log := log.Logger{}
+		log := logger.Logger{}
 
 		userId := c.Locals("user_id").(uint)
 		log.With(slog.Uint64("user_id", uint64(userId)))

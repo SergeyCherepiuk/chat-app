@@ -4,7 +4,7 @@ import (
 	"strconv"
 
 	"github.com/SergeyCherepiuk/chat-app/domain"
-	"github.com/SergeyCherepiuk/chat-app/pkg/log"
+	"github.com/SergeyCherepiuk/chat-app/pkg/logger"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/utils"
 	"golang.org/x/exp/slog"
@@ -23,7 +23,7 @@ func NewChatMiddleware(
 
 func (middleware ChatMiddleware) CheckIfCompanionExists() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		log := log.Logger{}
+		log := logger.Logger{}
 
 		username := utils.CopyString(c.Params("username", ""))
 		companion, err := middleware.userService.GetByUsername(username)
@@ -43,7 +43,7 @@ func (middleware ChatMiddleware) CheckIfCompanionExists() fiber.Handler {
 
 func (middleware ChatMiddleware) CheckIfBelongsToChat() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		log := log.Logger{}
+		log := logger.Logger{}
 
 		userId := c.Locals("user_id").(uint)
 		log.With(slog.Uint64("user_id", uint64(userId)))
@@ -75,7 +75,7 @@ func (middleware ChatMiddleware) CheckIfBelongsToChat() fiber.Handler {
 
 func (middleware ChatMiddleware) CheckIfAuthor() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		log := log.Logger{}
+		log := logger.Logger{}
 
 		userId := c.Locals("user_id").(uint)
 		log.With(slog.Uint64("user_id", uint64(userId)))

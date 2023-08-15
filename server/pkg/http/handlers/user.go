@@ -5,7 +5,7 @@ import (
 
 	"github.com/SergeyCherepiuk/chat-app/domain"
 	"github.com/SergeyCherepiuk/chat-app/pkg/http/validation"
-	"github.com/SergeyCherepiuk/chat-app/pkg/log"
+	"github.com/SergeyCherepiuk/chat-app/pkg/logger"
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/exp/slog"
 )
@@ -19,7 +19,7 @@ func NewUserHandler(userService domain.UserService) *UserHandler {
 }
 
 func (handler UserHandler) GetMe(c *fiber.Ctx) error {
-	log := log.Logger{}
+	log := logger.Logger{}
 
 	userId, _ := c.Locals("user_id").(uint)
 	log.With(slog.Uint64("user_id", uint64(userId)))
@@ -40,7 +40,7 @@ func (handler UserHandler) GetMe(c *fiber.Ctx) error {
 }
 
 func (handler UserHandler) GetByUsername(c *fiber.Ctx) error {
-	log := log.Logger{}
+	log := logger.Logger{}
 
 	userId, _ := c.Locals("user_id").(uint)
 	log.With(slog.Uint64("user_id", uint64(userId)))
@@ -66,7 +66,7 @@ func (handler UserHandler) GetByUsername(c *fiber.Ctx) error {
 }
 
 func (handler UserHandler) UpdateMe(c *fiber.Ctx) error {
-	log := log.Logger{}
+	log := logger.Logger{}
 
 	userId, _ := c.Locals("user_id").(uint)
 	log.With(slog.Uint64("user_id", uint64(userId)))
@@ -92,7 +92,7 @@ func (handler UserHandler) UpdateMe(c *fiber.Ctx) error {
 }
 
 func (handler UserHandler) DeleteMe(c *fiber.Ctx) error {
-	log := log.Logger{}
+	log := logger.Logger{}
 
 	userId, _ := c.Locals("user_id").(uint)
 	log.With(slog.Uint64("user_id", uint64(userId)))

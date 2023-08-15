@@ -1,4 +1,4 @@
-package log
+package logger
 
 import "golang.org/x/exp/slog"
 

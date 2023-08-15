@@ -1,4 +1,4 @@
-package log
+package logger
 
 import (
 	"context"
@@ -6,6 +6,9 @@ import (
 
 	"golang.org/x/exp/slog"
 )
+
+type logContextKey string
+var LogContextKey = logContextKey("log")
 
 var logs chan message
 

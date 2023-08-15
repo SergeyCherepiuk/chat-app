@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"github.com/SergeyCherepiuk/chat-app/domain"
-	"github.com/SergeyCherepiuk/chat-app/pkg/log"
+	"github.com/SergeyCherepiuk/chat-app/pkg/logger"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"golang.org/x/exp/slog"
@@ -18,7 +18,7 @@ func NewAuthMiddleware(authService domain.AuthService) *AuthMiddleware {
 
 func (middleware AuthMiddleware) CheckIfAuthenticated() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		log := log.Logger{}
+		log := logger.Logger{}
 
 		sessionId, err := uuid.Parse(c.Cookies("session_id", ""))
 		if err != nil {

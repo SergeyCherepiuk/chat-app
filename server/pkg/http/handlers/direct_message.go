@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"context"
+
 	"github.com/SergeyCherepiuk/chat-app/domain"
 	"github.com/SergeyCherepiuk/chat-app/pkg/connection"
 	"github.com/SergeyCherepiuk/chat-app/pkg/http/validation"
-	"github.com/SergeyCherepiuk/chat-app/pkg/log"
+	"github.com/SergeyCherepiuk/chat-app/pkg/logger"
 	"github.com/SergeyCherepiuk/chat-app/pkg/messaging"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
@@ -46,7 +48,7 @@ func (pair Pair) GetKey() [2]uint {
 func (handler DirectMessageHandler) EnterChat(c *websocket.Conn) {
 	defer c.Close()
 
-	log := log.Logger{}
+	log := logger.Logger{}
 
 	userId := c.Locals("user_id").(uint)
 	log.With(slog.Uint64("user_id", uint64(userId)))
@@ -66,7 +68,11 @@ func (handler DirectMessageHandler) EnterChat(c *websocket.Conn) {
 		log.Error("failed to get chat history", slog.String("err", err.Error()))
 		return
 	}
-	go handler.messageSenderService.Send(history, c)
+
+	historyContext, historyCancel := context.WithCancel(context.Background())
+	historyContext = context.WithValue(historyContext, logger.LogContextKey, log)
+	defer historyCancel()
+	go handler.messageSenderService.Send(historyContext, history, c)
 
 	for {
 		_, text, err := c.ReadMessage()
@@ -105,15 +111,16 @@ func (handler DirectMessageHandler) EnterChat(c *websocket.Conn) {
 		}
 
 		go handler.messageSenderService.Send(
+			context.WithValue(context.Background(), logger.LogContextKey, log),
 			[]domain.DirectMessage{message},
-			handler.connectionManagerService.GetConnections(key)...,	
+			handler.connectionManagerService.GetConnections(key)...,
 		)
 		log.Info("user has sent the message", slog.Any("message", message))
 	}
 }
 
 func (handler DirectMessageHandler) UpdateMessage(c *fiber.Ctx) error {
-	log := log.Logger{}
+	log := logger.Logger{}
 
 	messageId := c.Locals("message_id").(uint)
 	log.With(slog.Uint64("message_id", uint64(messageId)))
@@ -143,7 +150,7 @@ func (handler DirectMessageHandler) UpdateMessage(c *fiber.Ctx) error {
 }
 
 func (handler DirectMessageHandler) DeleteMessage(c *fiber.Ctx) error {
-	log := log.Logger{}
+	log := logger.Logger{}
 
 	message_id := c.Locals("message_id").(uint)
 	log.With(slog.Uint64("message_id", uint64(message_id)))
@@ -158,7 +165,7 @@ func (handler DirectMessageHandler) DeleteMessage(c *fiber.Ctx) error {
 }
 
 func (handler DirectMessageHandler) DeleteChat(c *fiber.Ctx) error {
-	log := log.Logger{}
+	log := logger.Logger{}
 
 	userId := c.Locals("user_id").(uint)
 	log.With(slog.Uint64("user_id", uint64(userId)))
