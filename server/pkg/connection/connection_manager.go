@@ -8,7 +8,7 @@ import (
 )
 
 type ConnectionManagerService[T comparable] struct {
-	mu          sync.Mutex
+	mu          sync.RWMutex
 	Connections map[T]*hashset.Set
 }
 
@@ -39,6 +39,9 @@ func (manager *ConnectionManagerService[T]) Disconnect(key T, conn *websocket.Co
 }
 
 func (manager *ConnectionManagerService[T]) GetConnections(key T) []*websocket.Conn {
+	manager.mu.RLock()
+	defer manager.mu.RUnlock()
+
 	connections := make([]*websocket.Conn, manager.Connections[key].Size())
 	for i, conn := range manager.Connections[key].Values() {
 		connections[i] = conn.(*websocket.Conn)
