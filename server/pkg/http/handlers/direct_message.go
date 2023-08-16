@@ -148,8 +148,10 @@ func (handler DirectMessageHandler) GetHistory(c *fiber.Ctx) error {
 	}
 
 	defer log.Info("chat history has been sent")
-	if len(history) != settings.CHAT_HISTORY_BLOCK_SIZE {
-		return c.JSON(validation.GetHistoryResponseBody{History: history})
+	if len(history) < settings.CHAT_HISTORY_BLOCK_SIZE {
+		return c.JSON(validation.GetHistoryResponseBody[domain.DirectMessage]{
+			History: history,
+		})
 	}
 
 	next := fmt.Sprintf(
@@ -157,7 +159,7 @@ func (handler DirectMessageHandler) GetHistory(c *fiber.Ctx) error {
 		c.Params("username"),
 		history[len(history)-1].ID-1,
 	)
-	return c.JSON(validation.GetHistoryWithNextResponseBody{
+	return c.JSON(validation.GetHistoryWithNextResponseBody[domain.DirectMessage]{
 		History: history,
 		Next:    string(next),
 	})

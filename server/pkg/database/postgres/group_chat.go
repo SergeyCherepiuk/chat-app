@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"github.com/SergeyCherepiuk/chat-app/domain"
+	"github.com/SergeyCherepiuk/chat-app/pkg/settings"
 	"github.com/SergeyCherepiuk/chat-app/utils"
 	"github.com/jmoiron/sqlx"
 )
@@ -27,7 +28,7 @@ func NewGroupChatService() *GroupChatService {
 		updateChatStmts:   make(map[string]*sqlx.NamedStmt),
 	}
 	utils.MustPrepareNamed(db, &service.getChatStmt, `SELECT * FROM group_chats WHERE id = :chat_id`)
-	utils.MustPrepareNamed(db, &service.getHistoryStmt, `SELECT * FROM group_messages WHERE chat_id = :chat_id ORDER BY created_at`)
+	utils.MustPrepareNamed(db, &service.getHistoryStmt, `SELECT * FROM group_messages WHERE chat_id = :chat_id AND id <= :from_id ORDER BY created_at DESC LIMIT :limit`)
 	utils.MustPrepareNamed(db, &service.createChatStmt, `INSERT INTO group_chats (name, creator_id) VALUES (:name, :creator_id) RETURNING *`)
 	utils.MustPrepareNamed(db, &service.createMessageStmt, `INSERT INTO group_messages (message, user_id, chat_id, is_edited) VALUES (:message, :user_id, :chat_id, :is_edited) RETURNING *`)
 	utils.MustPrepareNamedMap(db, service.updateChatColumns, service.updateChatStmts, `UPDATE group_chats SET %s = :value WHERE id = :chat_id`)
@@ -53,9 +54,11 @@ func (service GroupChatService) GetChat(chatId uint) (domain.GroupChat, error) {
 	return chat, nil
 }
 
-func (service GroupChatService) GetHistory(chatId uint) ([]domain.GroupMessage, error) {
+func (service GroupChatService) GetHistory(chatId, fromId uint) ([]domain.GroupMessage, error) {
 	namedParams := map[string]any{
 		"chat_id": chatId,
+		"from_id": fromId,
+		"limit":   settings.CHAT_HISTORY_BLOCK_SIZE,
 	}
 
 	history := []domain.GroupMessage{}

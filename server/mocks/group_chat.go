@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/SergeyCherepiuk/chat-app/domain"
+	"github.com/SergeyCherepiuk/chat-app/pkg/settings"
 )
 
 type GroupChatService struct{}
@@ -34,11 +35,14 @@ func (service GroupChatService) GetChat(chatId uint) (domain.GroupChat, error) {
 	return domain.GroupChat{}, errors.New("chat not found")
 }
 
-func (service GroupChatService) GetHistory(chatId uint) ([]domain.GroupMessage, error) {
+func (service GroupChatService) GetHistory(chatId, fromId uint) ([]domain.GroupMessage, error) {
 	service.reset()
 	history := []domain.GroupMessage{}
 	for _, message := range groupMessages {
-		if message.ChatID == chatId {
+		if len(history) >= settings.CHAT_HISTORY_BLOCK_SIZE {
+			break
+		}
+		if message.ChatID == chatId && message.ID <= fromId {
 			history = append(history, message)
 		}
 	}

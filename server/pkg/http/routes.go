@@ -48,15 +48,8 @@ func (router Router) Build() *fiber.App {
 	chat := api.Group("/chat/:username")
 	chat.Use(authMiddleware.CheckIfAuthenticated())
 	chat.Use(directMessageMiddleware.CheckIfCompanionExists())
-	chat.Get(
-		"/",
-		middleware.Upgrade,
-		websocket.New(directMessageHandler.EnterChat, websocket.Config{}),
-	)
-	chat.Get(
-		"/history",
-		directMessageHandler.GetHistory,
-	)
+	chat.Get("/", middleware.Upgrade, websocket.New(directMessageHandler.EnterChat, websocket.Config{}))
+	chat.Get("/history", directMessageHandler.GetHistory)
 	chat.Delete("/", directMessageHandler.DeleteChat)
 
 	directMessage := chat.Group("/:message_id")
@@ -69,15 +62,10 @@ func (router Router) Build() *fiber.App {
 	groupChat.Use(authMiddleware.CheckIfAuthenticated())
 	groupChat.Post("/", groupChatHandler.CreateChat)
 
-	groupChat.Get(
-		"/:chat_id/enter",
-		middleware.Upgrade,
-		groupChatMiddleware.CheckIfGroupChatExists(),
-		websocket.New(groupChatHandler.EnterChat, websocket.Config{}),
-	)
-
 	groupChatWithId := groupChat.Group("/:chat_id")
 	groupChatWithId.Use(groupChatMiddleware.CheckIfGroupChatExists())
+	groupChatWithId.Get("/enter", middleware.Upgrade, websocket.New(groupChatHandler.EnterChat, websocket.Config{}))
+	groupChatWithId.Get("/history", groupChatHandler.GetHistory)
 	groupChatWithId.Get("/", groupChatHandler.GetChat)
 	groupChatWithId.Put("/", groupChatMiddleware.CheckIfAdmin(), groupChatHandler.UpdateChat)
 	groupChatWithId.Delete("/", groupChatMiddleware.CheckIfAdmin(), groupChatHandler.DeleteChat)

@@ -2,12 +2,16 @@ package handlers
 
 import (
 	"context"
+	"fmt"
+	"math"
+	"strconv"
 
 	"github.com/SergeyCherepiuk/chat-app/domain"
 	"github.com/SergeyCherepiuk/chat-app/pkg/connection"
 	"github.com/SergeyCherepiuk/chat-app/pkg/http/validation"
 	"github.com/SergeyCherepiuk/chat-app/pkg/logger"
 	"github.com/SergeyCherepiuk/chat-app/pkg/messaging"
+	"github.com/SergeyCherepiuk/chat-app/pkg/settings"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/exp/slog"
@@ -42,7 +46,7 @@ func (handler GroupChatHandler) EnterChat(c *websocket.Conn) {
 		go handler.connectionManagerService.Disconnect(chatId, c)
 	}()
 
-	history, err := handler.groupChatService.GetHistory(chatId)
+	history, err := handler.groupChatService.GetHistory(chatId, math.MaxInt64)
 	if err != nil {
 		log.Error("failed to get chat history", slog.String("err", err.Error()))
 		return
@@ -96,6 +100,47 @@ func (handler GroupChatHandler) EnterChat(c *websocket.Conn) {
 		)
 		log.Info("user has sent the message", slog.Any("message", message))
 	}
+}
+
+func (handler GroupChatHandler) GetHistory(c *fiber.Ctx) error {
+	log := logger.Logger{}
+
+	userId := c.Locals("user_id").(uint)
+	log.With(slog.Uint64("user_id", uint64(userId)))
+
+	chatId := c.Locals("chat_id").(uint)
+	log.With(slog.Uint64("chat_id", uint64(chatId)))
+
+	fromId, err := strconv.ParseUint(c.Query("from_id"), 10, 64)
+	if c.Query("from_id") != "" && err != nil {
+		log.Error("failed to parse 'from_id' message id", slog.String("err", err.Error()))
+		return err
+	}
+	if c.Query("from_id") == "" {
+		fromId = math.MaxInt64
+	}
+
+	history, err := handler.groupChatService.GetHistory(chatId, uint(fromId))
+	if err != nil {
+		log.Error("failed to get chat history", slog.String("err", err.Error()))
+		return err
+	}
+
+	if len(history) < settings.CHAT_HISTORY_BLOCK_SIZE {
+		return c.JSON(validation.GetHistoryResponseBody[domain.GroupMessage]{
+			History: history,
+		})
+	}
+
+	next := fmt.Sprintf(
+		"http://localhost:8001/api/group-chat/%d/history?from_id=%d",
+		chatId,
+		history[len(history)-1].ID-1,
+	)
+	return c.JSON(validation.GetHistoryWithNextResponseBody[domain.GroupMessage]{
+		History: history,
+		Next:    next,
+	})
 }
 
 func (handler GroupChatHandler) GetChat(c *fiber.Ctx) error {

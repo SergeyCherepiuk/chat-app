@@ -20,7 +20,7 @@ type GroupMessage struct {
 
 type GroupChatService interface {
 	GetChat(chatId uint) (GroupChat, error)
-	GetHistory(chatId uint) ([]GroupMessage, error)
+	GetHistory(chatId, fromId uint) ([]GroupMessage, error)
 	CreateChat(chat *GroupChat) error
 	CreateMessage(message *GroupMessage) error
 	UpdateChat(chatId uint, updates map[string]any) error
