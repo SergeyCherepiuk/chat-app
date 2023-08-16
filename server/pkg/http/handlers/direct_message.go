@@ -122,6 +122,9 @@ func (handler DirectMessageHandler) EnterChat(c *websocket.Conn) {
 func (handler DirectMessageHandler) UpdateMessage(c *fiber.Ctx) error {
 	log := logger.Logger{}
 
+	userId := c.Locals("user_id").(uint)
+	log.With(slog.Uint64("user_id", uint64(userId)))
+
 	messageId := c.Locals("message_id").(uint)
 	log.With(slog.Uint64("message_id", uint64(messageId)))
 
@@ -151,6 +154,9 @@ func (handler DirectMessageHandler) UpdateMessage(c *fiber.Ctx) error {
 
 func (handler DirectMessageHandler) DeleteMessage(c *fiber.Ctx) error {
 	log := logger.Logger{}
+
+	userId := c.Locals("user_id").(uint)
+	log.With(slog.Uint64("user_id", uint64(userId)))
 
 	message_id := c.Locals("message_id").(uint)
 	log.With(slog.Uint64("message_id", uint64(message_id)))

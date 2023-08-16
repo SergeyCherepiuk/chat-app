@@ -45,29 +45,32 @@ func (router Router) Build() *fiber.App {
 		router.DirectMessageService,
 		router.UserService,
 	)
-	chat := api.Group("/chat/:username")
-	chat.Use(authMiddleware.CheckIfAuthenticated())
-	chat.Use(directMessageMiddleware.CheckIfCompanionExists())
-	chat.Delete("/", directMessageHandler.DeleteChat)
+	directChat := api.Group("/chat/:username")
+	directChat.Use(authMiddleware.CheckIfAuthenticated())
+	directChat.Use(directMessageMiddleware.CheckIfCompanionExists())
+	directChat.Get(
+		"/",
+		middleware.Upgrade,
+		websocket.New(directMessageHandler.EnterChat, websocket.Config{}),
+	)
+	directChat.Delete("/", directMessageHandler.DeleteChat)
 
-	directMessage := chat.Group("/:message_id")
+	directMessage := directChat.Group("/:message_id")
 	directMessage.Use(directMessageMiddleware.CheckIfBelongsToChat())
 	directMessage.Put("/", directMessageMiddleware.CheckIfAuthor(), directMessageHandler.UpdateMessage)
 	directMessage.Delete("/", directMessageHandler.DeleteMessage)
-
-	wsChat := chat.Group("")
-	wsChat.Use(middleware.Upgrade)
-	wsChat.Get("/", websocket.New(directMessageHandler.EnterChat, websocket.Config{}))
 
 	groupChatHandler := handlers.NewGroupChatHandler(router.GroupChatService)
 	groupChat := api.Group("/group-chat")
 	groupChat.Use(authMiddleware.CheckIfAuthenticated())
 	groupChat.Post("/", groupChatHandler.CreateChat)
 
-	wsGroupChat := groupChat.Group("/enter/:chat_id")
-	wsGroupChat.Use(middleware.Upgrade)
-	wsGroupChat.Use(groupChatMiddleware.CheckIfGroupChatExists())
-	wsGroupChat.Get("/", websocket.New(groupChatHandler.EnterChat, websocket.Config{}))
+	groupChat.Get(
+		"/:chat_id/enter",
+		middleware.Upgrade,
+		groupChatMiddleware.CheckIfGroupChatExists(),
+		websocket.New(groupChatHandler.EnterChat, websocket.Config{}),
+	)
 
 	groupChatWithId := groupChat.Group("/:chat_id")
 	groupChatWithId.Use(groupChatMiddleware.CheckIfGroupChatExists())
