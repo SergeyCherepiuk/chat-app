@@ -2,12 +2,16 @@ package handlers
 
 import (
 	"context"
+	"fmt"
+	"math"
+	"strconv"
 
 	"github.com/SergeyCherepiuk/chat-app/domain"
 	"github.com/SergeyCherepiuk/chat-app/pkg/connection"
 	"github.com/SergeyCherepiuk/chat-app/pkg/http/validation"
 	"github.com/SergeyCherepiuk/chat-app/pkg/logger"
 	"github.com/SergeyCherepiuk/chat-app/pkg/messaging"
+	"github.com/SergeyCherepiuk/chat-app/pkg/settings"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 
@@ -63,7 +67,7 @@ func (handler DirectMessageHandler) EnterChat(c *websocket.Conn) {
 		go handler.connectionManagerService.Disconnect(key, c)
 	}()
 
-	history, err := handler.directMessageService.GetHistory(userId, companionId)
+	history, err := handler.directMessageService.GetHistory(userId, companionId, math.MaxInt64)
 	if err != nil {
 		log.Error("failed to get chat history", slog.String("err", err.Error()))
 		return
@@ -117,6 +121,46 @@ func (handler DirectMessageHandler) EnterChat(c *websocket.Conn) {
 		)
 		log.Info("user has sent the message", slog.Any("message", message))
 	}
+}
+
+func (handler DirectMessageHandler) GetHistory(c *fiber.Ctx) error {
+	log := logger.Logger{}
+
+	userId := c.Locals("user_id").(uint)
+	log.With(slog.Uint64("user_id", uint64(userId)))
+
+	companionId := c.Locals("companion_id").(uint)
+	log.With(slog.Uint64("companion_id", uint64(companionId)))
+
+	fromId, err := strconv.ParseUint(c.Query("from_id"), 10, 64)
+	if c.Query("from_id") != "" && err != nil {
+		log.Error("failed to parse 'from_id' message id", slog.String("err", err.Error()))
+		return err
+	}
+	if c.Query("from_id") == "" {
+		fromId = math.MaxInt64
+	}
+
+	history, err := handler.directMessageService.GetHistory(userId, companionId, uint(fromId))
+	if err != nil {
+		log.Error("failed to get chat history", slog.String("err", err.Error()))
+		return err
+	}
+
+	defer log.Info("chat history has been sent")
+	if len(history) != settings.CHAT_HISTORY_BLOCK_SIZE {
+		return c.JSON(validation.GetHistoryResponseBody{History: history})
+	}
+
+	next := fmt.Sprintf(
+		"http://localhost:8001/api/chat/%s/history?from_id=%d",
+		c.Params("username"),
+		history[len(history)-1].ID-1,
+	)
+	return c.JSON(validation.GetHistoryWithNextResponseBody{
+		History: history,
+		Next:    string(next),
+	})
 }
 
 func (handler DirectMessageHandler) UpdateMessage(c *fiber.Ctx) error {

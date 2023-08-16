@@ -12,7 +12,7 @@ type DirectMessage struct {
 }
 
 type DirectMessageService interface {
-	GetHistory(userId, companionId uint) ([]DirectMessage, error)
+	GetHistory(userId, companionId, fromId uint) ([]DirectMessage, error)
 	Create(message *DirectMessage) error
 	Update(messageId uint, updatedMessage string) error
 	Delete(messageId uint) error

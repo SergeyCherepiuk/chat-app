@@ -2,23 +2,24 @@ package postgres
 
 import (
 	"github.com/SergeyCherepiuk/chat-app/domain"
+	"github.com/SergeyCherepiuk/chat-app/pkg/settings"
 	"github.com/SergeyCherepiuk/chat-app/utils"
 	"github.com/jmoiron/sqlx"
 )
 
-type DirectMessageService struct{
-	getHistoryStmt *sqlx.NamedStmt
-	createStmt *sqlx.NamedStmt
-	updateStmt *sqlx.NamedStmt
-	deleteStmt *sqlx.NamedStmt
-	deleteAllStmt *sqlx.NamedStmt
+type DirectMessageService struct {
+	getHistoryStmt      *sqlx.NamedStmt
+	createStmt          *sqlx.NamedStmt
+	updateStmt          *sqlx.NamedStmt
+	deleteStmt          *sqlx.NamedStmt
+	deleteAllStmt       *sqlx.NamedStmt
 	isBelongsToChatStmt *sqlx.NamedStmt
-	isAuthorStmt *sqlx.NamedStmt
+	isAuthorStmt        *sqlx.NamedStmt
 }
 
 func NewDirectMessageService() *DirectMessageService {
 	service := DirectMessageService{}
-	utils.MustPrepareNamed(db, &service.getHistoryStmt, `SELECT * FROM direct_messages WHERE (message_from = :user_id AND message_to = :companion_id) OR (message_from = :companion_id AND message_to = :user_id) ORDER BY created_at`)
+	utils.MustPrepareNamed(db, &service.getHistoryStmt, `SELECT * FROM direct_messages WHERE ((message_from = :user_id AND message_to = :companion_id) OR (message_from = :companion_id AND message_to = :user_id)) AND id <= :from_id ORDER BY created_at DESC LIMIT :limit`)
 	utils.MustPrepareNamed(db, &service.createStmt, `INSERT INTO direct_messages (message_from, message_to, message, is_edited) VALUES (:message_from, :message_to, :message, :is_edited) RETURNING *`)
 	utils.MustPrepareNamed(db, &service.updateStmt, `UPDATE direct_messages SET message = :message, is_edited = true WHERE id = :message_id`)
 	utils.MustPrepareNamed(db, &service.deleteStmt, `DELETE FROM direct_messages WHERE id = :message_id`)
@@ -28,10 +29,12 @@ func NewDirectMessageService() *DirectMessageService {
 	return &service
 }
 
-func (service DirectMessageService) GetHistory(userId, companionId uint) ([]domain.DirectMessage, error) {
+func (service DirectMessageService) GetHistory(userId, companionId, fromId uint) ([]domain.DirectMessage, error) {
 	namedParams := map[string]any{
 		"user_id":      userId,
 		"companion_id": companionId,
+		"from_id":      fromId,
+		"limit":        settings.CHAT_HISTORY_BLOCK_SIZE,
 	}
 
 	history := []domain.DirectMessage{}

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/SergeyCherepiuk/chat-app/domain"
+	"github.com/SergeyCherepiuk/chat-app/pkg/settings"
 )
 
 type DirectMessageService struct{}
@@ -20,11 +21,14 @@ func (service DirectMessageService) reset() {
 	}
 }
 
-func (service DirectMessageService) GetHistory(userId, companionId uint) ([]domain.DirectMessage, error) {
+func (service DirectMessageService) GetHistory(userId, companionId, fromId uint) ([]domain.DirectMessage, error) {
 	service.reset()
 	history := []domain.DirectMessage{}
 	for _, message := range directMessages {
-		if (message.From == userId && message.To == companionId) || (message.From == companionId && message.To == userId) {
+		if len(history) >= settings.CHAT_HISTORY_BLOCK_SIZE {
+			break
+		}
+		if ((message.From == userId && message.To == companionId) || (message.From == companionId && message.To == userId)) && message.ID <= fromId {
 			history = append(history, message)
 		}
 	}

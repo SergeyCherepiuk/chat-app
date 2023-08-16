@@ -45,17 +45,21 @@ func (router Router) Build() *fiber.App {
 		router.DirectMessageService,
 		router.UserService,
 	)
-	directChat := api.Group("/chat/:username")
-	directChat.Use(authMiddleware.CheckIfAuthenticated())
-	directChat.Use(directMessageMiddleware.CheckIfCompanionExists())
-	directChat.Get(
+	chat := api.Group("/chat/:username")
+	chat.Use(authMiddleware.CheckIfAuthenticated())
+	chat.Use(directMessageMiddleware.CheckIfCompanionExists())
+	chat.Get(
 		"/",
 		middleware.Upgrade,
 		websocket.New(directMessageHandler.EnterChat, websocket.Config{}),
 	)
-	directChat.Delete("/", directMessageHandler.DeleteChat)
+	chat.Get(
+		"/history",
+		directMessageHandler.GetHistory,
+	)
+	chat.Delete("/", directMessageHandler.DeleteChat)
 
-	directMessage := directChat.Group("/:message_id")
+	directMessage := chat.Group("/:message_id")
 	directMessage.Use(directMessageMiddleware.CheckIfBelongsToChat())
 	directMessage.Put("/", directMessageMiddleware.CheckIfAuthor(), directMessageHandler.UpdateMessage)
 	directMessage.Delete("/", directMessageHandler.DeleteMessage)
