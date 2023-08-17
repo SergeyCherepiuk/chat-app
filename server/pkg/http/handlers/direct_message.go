@@ -161,7 +161,7 @@ func (handler DirectMessageHandler) GetHistory(c *fiber.Ctx) error {
 	)
 	return c.JSON(validation.GetHistoryWithNextResponseBody[domain.DirectMessage]{
 		History: history,
-		Next:    string(next),
+		Next:    next,
 	})
 }
 

@@ -126,6 +126,7 @@ func (handler GroupChatHandler) GetHistory(c *fiber.Ctx) error {
 		return err
 	}
 
+	defer log.Info("chat history has been sent")
 	if len(history) < settings.CHAT_HISTORY_BLOCK_SIZE {
 		return c.JSON(validation.GetHistoryResponseBody[domain.GroupMessage]{
 			History: history,
