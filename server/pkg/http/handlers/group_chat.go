@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"os"
 	"strconv"
 
 	"github.com/SergeyCherepiuk/chat-app/domain"
@@ -134,7 +135,8 @@ func (handler GroupChatHandler) GetHistory(c *fiber.Ctx) error {
 	}
 
 	next := fmt.Sprintf(
-		"http://localhost:8001/api/group-chat/%d/history?from_id=%d",
+		"http://localhost:%s/api/group-chat/%d/history?from_id=%d",
+		os.Getenv("SERVER_PORT"),
 		chatId,
 		history[len(history)-1].ID-1,
 	)

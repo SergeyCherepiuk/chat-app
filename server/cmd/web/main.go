@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	stdlog "log"
+	"os"
 
 	"github.com/SergeyCherepiuk/chat-app/pkg/database/postgres"
 	"github.com/SergeyCherepiuk/chat-app/pkg/database/redis"
@@ -27,5 +29,5 @@ func main() {
 		GroupChatService:     postgres.NewGroupChatService(),
 	}.Build()
 
-	app.Listen(":8001")
+	app.Listen(fmt.Sprintf(":%s", os.Getenv("SERVER_PORT")))
 }
