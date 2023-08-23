@@ -63,7 +63,7 @@ func (service GroupChatService) GetHistory(chatId, fromId uint) ([]domain.GroupM
 
 	history := []domain.GroupMessage{}
 	if err := service.getHistoryStmt.Select(&history, namedParams); err != nil {
-		return []domain.GroupMessage{}, err
+		return nil, err
 	}
 
 	return history, nil

@@ -39,7 +39,7 @@ func (service DirectMessageService) GetHistory(userId, companionId, fromId uint)
 
 	history := []domain.DirectMessage{}
 	if err := service.getHistoryStmt.Select(&history, namedParams); err != nil {
-		return []domain.DirectMessage{}, err
+		return nil, err
 	}
 
 	return history, nil

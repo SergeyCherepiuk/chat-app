@@ -30,7 +30,7 @@ func (manager SessionManagerService) Create(userId uint) (uuid.UUID, error) {
 
 	_, err = pipe.Exec(context.Background())
 	if err != nil {
-		return uuid.UUID{}, err
+		return uuid.Nil, err
 	}
 
 	return sessionId, nil

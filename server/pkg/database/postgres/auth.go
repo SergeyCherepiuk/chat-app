@@ -24,7 +24,7 @@ func NewAuthService(sessionManager domain.SessionManagerService) *AuthService {
 func (service AuthService) SignUp(user domain.User) (uuid.UUID, uint, error) {
 	tx, err := db.Beginx()
 	if err != nil {
-		return uuid.UUID{}, 0, err
+		return uuid.Nil, 0, err
 	}
 
 	namedParams := map[string]any{
@@ -39,13 +39,13 @@ func (service AuthService) SignUp(user domain.User) (uuid.UUID, uint, error) {
 	var userId uint
 	if err := service.signUpStmt.Get(&userId, namedParams); err != nil {
 		tx.Rollback()
-		return uuid.UUID{}, 0, err
+		return uuid.Nil, 0, err
 	}
 
 	sessionId, err := service.sessionManager.Create(userId)
 	if err != nil {
 		tx.Rollback()
-		return uuid.UUID{}, 0, err
+		return uuid.Nil, 0, err
 	}
 
 	tx.Commit()
@@ -59,16 +59,16 @@ func (service AuthService) Login(username, password string) (uuid.UUID, uint, er
 
 	user := domain.User{}
 	if err := service.loginStmt.Get(&user, namedParams); err != nil {
-		return uuid.UUID{}, 0, err
+		return uuid.Nil, 0, err
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		return uuid.UUID{}, 0, err
+		return uuid.Nil, 0, err
 	}
 
 	sessionId, err := service.sessionManager.Create(user.ID)
 	if err != nil {
-		return uuid.UUID{}, 0, err
+		return uuid.Nil, 0, err
 	}
 
 	return sessionId, user.ID, nil
